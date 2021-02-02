@@ -15,6 +15,7 @@ using Microsoft.CodeAnalysis.Editor.Extensibility.NavigationBar;
 using Microsoft.CodeAnalysis.Editor.Shared.Extensions;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.PooledObjects;
+using Microsoft.CodeAnalysis.Shared.Extensions;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.Text.Adornments;
@@ -23,9 +24,9 @@ using LSP = Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.CodeAnalysis.LanguageServer.Handler
 {
-    [Shared]
-    [ExportLspMethod(Methods.TextDocumentDocumentSymbolName, mutatesSolutionState: false)]
-    internal class DocumentSymbolsHandler : IRequestHandler<DocumentSymbolParams, object[]>
+    [ExportLspRequestHandlerProvider, Shared]
+    [LspMethod(Methods.TextDocumentDocumentSymbolName, mutatesSolutionState: false)]
+    internal class DocumentSymbolsHandler : AbstractStatelessRequestHandler<DocumentSymbolParams, object[]>
     {
         [ImportingConstructor]
         [Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
@@ -33,9 +34,9 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
         {
         }
 
-        public TextDocumentIdentifier GetTextDocumentIdentifier(DocumentSymbolParams request) => request.TextDocument;
+        public override TextDocumentIdentifier GetTextDocumentIdentifier(DocumentSymbolParams request) => request.TextDocument;
 
-        public async Task<object[]> HandleRequestAsync(DocumentSymbolParams request, RequestContext context, CancellationToken cancellationToken)
+        public override async Task<object[]> HandleRequestAsync(DocumentSymbolParams request, RequestContext context, CancellationToken cancellationToken)
         {
             var document = context.Document;
             if (document == null)
@@ -145,7 +146,7 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
                 Name = symbol.Name,
                 Detail = item.Text,
                 Kind = ProtocolConversions.GlyphToSymbolKind(item.Glyph),
-                Deprecated = symbol.GetAttributes().Any(x => x.AttributeClass.MetadataName == "ObsoleteAttribute"),
+                Deprecated = symbol.IsObsolete(),
                 Range = ProtocolConversions.TextSpanToRange(item.Spans.First(), text),
                 SelectionRange = ProtocolConversions.TextSpanToRange(location.SourceSpan, text),
                 Children = await GetChildrenAsync(item.ChildItems, compilation, tree, text, cancellationToken).ConfigureAwait(false),

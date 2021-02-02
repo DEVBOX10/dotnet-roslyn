@@ -44,7 +44,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             string name,
             ImmutableArray<Location> locations,
             SyntaxReference syntaxRef,
-            ConstantValue defaultSyntaxValue,
             bool isParams,
             bool isExtensionMethodThis)
             : base(owner, parameterType, ordinal, refKind, name, locations)
@@ -71,7 +70,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 _parameterSyntaxKind |= ParameterSyntaxKind.DefaultParameter;
             }
 
-            _lazyDefaultSyntaxValue = defaultSyntaxValue;
+            _lazyDefaultSyntaxValue = ConstantValue.Unset;
         }
 
         private Binder ParameterBinderOpt => (ContainingSymbol as LocalFunctionSymbol)?.ParameterBinder;
@@ -194,35 +193,48 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
+#nullable enable
+
+        internal static SyntaxNode? GetDefaultValueSyntaxForIsNullableAnalysisEnabled(ParameterSyntax? parameterSyntax) =>
+            parameterSyntax?.Default?.Value;
+
         private ConstantValue DefaultSyntaxValue
         {
             get
             {
-                if (_lazyDefaultSyntaxValue == ConstantValue.Unset)
+                if (state.NotePartComplete(CompletionPart.StartDefaultSyntaxValue))
                 {
                     var diagnostics = DiagnosticBag.GetInstance();
-
-                    if (Interlocked.CompareExchange(
+                    var previousValue = Interlocked.CompareExchange(
                         ref _lazyDefaultSyntaxValue,
                         MakeDefaultExpression(diagnostics, out var binder, out var parameterEqualsValue),
-                        ConstantValue.Unset) == ConstantValue.Unset)
-                    {
-                        if (binder is not null && parameterEqualsValue is not null && !_lazyDefaultSyntaxValue.IsBad)
-                        {
-                            NullableWalker.AnalyzeIfNeeded(binder, parameterEqualsValue, diagnostics);
-                        }
-                        NullableAnalyzeParameterDefaultValueFromAttributes(diagnostics);
+                        ConstantValue.Unset);
+                    Debug.Assert(previousValue == ConstantValue.Unset);
 
-                        // This is a race condition where the thread that loses
-                        // the compare exchange tries to access the diagnostics
-                        // before the thread which won the race finishes adding
-                        // them. https://github.com/dotnet/roslyn/issues/17243
-                        AddDeclarationDiagnostics(diagnostics);
+                    var completedOnThisThread = state.NotePartComplete(CompletionPart.EndDefaultSyntaxValue);
+                    Debug.Assert(completedOnThisThread);
+
+                    if (parameterEqualsValue is not null)
+                    {
+                        if (binder is not null &&
+                            GetDefaultValueSyntaxForIsNullableAnalysisEnabled(CSharpSyntaxNode) is { } valueSyntax)
+                        {
+                            NullableWalker.AnalyzeIfNeeded(binder, parameterEqualsValue, valueSyntax, diagnostics);
+                        }
+                        if (!_lazyDefaultSyntaxValue.IsBad)
+                        {
+                            VerifyParamDefaultValueMatchesAttributeIfAny(_lazyDefaultSyntaxValue, parameterEqualsValue.Value.Syntax, diagnostics);
+                        }
                     }
 
+                    AddDeclarationDiagnostics(diagnostics);
                     diagnostics.Free();
+
+                    completedOnThisThread = state.NotePartComplete(CompletionPart.EndDefaultSyntaxValueDiagnostics);
+                    Debug.Assert(completedOnThisThread);
                 }
 
+                state.SpinWaitComplete(CompletionPart.EndDefaultSyntaxValue, default(CancellationToken));
                 return _lazyDefaultSyntaxValue;
             }
         }
@@ -244,20 +256,29 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return binder;
         }
 
-        private void NullableAnalyzeParameterDefaultValueFromAttributes(DiagnosticBag diagnostics)
+        private void NullableAnalyzeParameterDefaultValueFromAttributes()
         {
-            var defaultValue = DefaultValueFromAttributes;
-            if (defaultValue == null || defaultValue.IsBad)
-            {
-                return;
-            }
-
             var parameterSyntax = this.CSharpSyntaxNode;
             if (parameterSyntax == null)
             {
                 // If there is no syntax at all for the parameter, it means we are in a situation like
                 // a property setter whose 'value' parameter has a default value from attributes.
                 // There isn't a sensible use for this in the language, so we just bail in such scenarios.
+                return;
+            }
+
+            // The syntax span used to determine whether the attribute value is in a nullable-enabled
+            // context is larger than necessary - it includes the entire attribute list rather than the specific
+            // default value attribute which is used in AttributeSemanticModel.IsNullableAnalysisEnabled().
+            var attributes = parameterSyntax.AttributeLists.Node;
+            if (attributes is null || !NullableWalker.NeedsAnalysis(DeclaringCompilation, attributes))
+            {
+                return;
+            }
+
+            var defaultValue = DefaultValueFromAttributes;
+            if (defaultValue == null || defaultValue.IsBad)
+            {
                 return;
             }
 
@@ -275,10 +296,15 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 // we will just get a bad constant value above and return early.
                 new BoundLiteral(parameterSyntax, defaultValue, Type));
 
-            NullableWalker.AnalyzeIfNeeded(binder, parameterEqualsValue, diagnostics);
+            var diagnostics = DiagnosticBag.GetInstance();
+            NullableWalker.AnalyzeIfNeeded(binder, parameterEqualsValue, parameterSyntax, diagnostics);
+            AddDeclarationDiagnostics(diagnostics);
+            diagnostics.Free();
         }
 
-        private ConstantValue MakeDefaultExpression(DiagnosticBag diagnostics, out Binder binder, out BoundParameterEqualsValue parameterEqualsValue)
+        // This method *must not* depend on attributes on the parameter symbol.
+        // Otherwise we will have cycles when binding usage of attributes whose constructors have optional parameters
+        private ConstantValue MakeDefaultExpression(DiagnosticBag diagnostics, out Binder? binder, out BoundParameterEqualsValue? parameterEqualsValue)
         {
             binder = null;
             parameterEqualsValue = null;
@@ -300,8 +326,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             Debug.Assert(binderForDefault.InParameterDefaultValue);
             Debug.Assert(binderForDefault.ContainingMemberOrLambda == ContainingSymbol);
 
-            BoundExpression valueBeforeConversion;
-            parameterEqualsValue = binderForDefault.BindParameterDefaultValue(defaultSyntax, this, diagnostics, out valueBeforeConversion);
+            parameterEqualsValue = binderForDefault.BindParameterDefaultValue(defaultSyntax, this, diagnostics, out var valueBeforeConversion);
             if (valueBeforeConversion.HasErrors)
             {
                 return ConstantValue.Bad;
@@ -329,9 +354,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             // represent default(struct) by a Null constant:
             var value = convertedExpression.ConstantValue ?? ConstantValue.Null;
-            VerifyParamDefaultValueMatchesAttributeIfAny(value, defaultSyntax.Value, diagnostics);
             return value;
         }
+
+#nullable disable
 
         public override string MetadataName
         {
@@ -517,6 +543,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
                 if (bagCreatedOnThisThread)
                 {
+                    NullableAnalyzeParameterDefaultValueFromAttributes();
                     state.NotePartComplete(CompletionPart.Attributes);
                 }
             }
@@ -749,7 +776,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         /// (DefaultParameterValueAttribute, DateTimeConstantAttribute or DecimalConstantAttribute).
         /// If not, report ERR_ParamDefaultValueDiffersFromAttribute.
         /// </summary>
-        private void VerifyParamDefaultValueMatchesAttributeIfAny(ConstantValue value, CSharpSyntaxNode syntax, DiagnosticBag diagnostics)
+        private void VerifyParamDefaultValueMatchesAttributeIfAny(ConstantValue value, SyntaxNode syntax, DiagnosticBag diagnostics)
         {
             var data = GetEarlyDecodedWellKnownAttributeData();
             if (data != null)
@@ -1140,10 +1167,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         internal override void ForceComplete(SourceLocation locationOpt, CancellationToken cancellationToken)
         {
-            base.ForceComplete(locationOpt, cancellationToken);
-
-            // Force binding of default value.
-            var unused = this.ExplicitDefaultConstantValue;
+            _ = this.GetAttributes();
+            _ = this.ExplicitDefaultConstantValue;
+            state.SpinWaitComplete(CompletionPart.ComplexParameterSymbolAll, cancellationToken);
         }
     }
 
@@ -1160,10 +1186,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             string name,
             ImmutableArray<Location> locations,
             SyntaxReference syntaxRef,
-            ConstantValue defaultSyntaxValue,
             bool isParams,
             bool isExtensionMethodThis)
-            : base(owner, ordinal, parameterType, refKind, name, locations, syntaxRef, defaultSyntaxValue, isParams, isExtensionMethodThis)
+            : base(owner, ordinal, parameterType, refKind, name, locations, syntaxRef, isParams, isExtensionMethodThis)
         {
             Debug.Assert(!refCustomModifiers.IsEmpty);
 
