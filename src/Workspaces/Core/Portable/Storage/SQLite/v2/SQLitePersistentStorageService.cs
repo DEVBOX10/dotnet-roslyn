@@ -41,7 +41,7 @@ namespace Microsoft.CodeAnalysis.SQLite.v2
         }
 
         protected override ValueTask<IChecksummedPersistentStorage?> TryOpenDatabaseAsync(
-            SolutionKey solutionKey, Solution? bulkLoadSnapshot, string workingFolderPath, string databaseFilePath)
+            SolutionKey solutionKey, string workingFolderPath, string databaseFilePath)
         {
             if (!TryInitializeLibraries())
             {
@@ -49,9 +49,9 @@ namespace Microsoft.CodeAnalysis.SQLite.v2
                 return new((IChecksummedPersistentStorage?)null);
             }
 
+            Contract.ThrowIfNull(solutionKey.FilePath);
             return new(SQLitePersistentStorage.TryCreate(
                 _connectionPoolService,
-                bulkLoadSnapshot,
                 workingFolderPath,
                 solutionKey.FilePath,
                 databaseFilePath,

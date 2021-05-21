@@ -32,17 +32,18 @@ namespace Microsoft.CodeAnalysis.Editor.Host
         /// It can also show messages about no references being found at the end of the search.
         /// If false, the presenter will not group by definitions, and will show the definition
         /// items in isolation.</param>
-        FindUsagesContext StartSearch(string title, bool supportsReferences);
+        /// <returns>A cancellation token that will be triggered if the presenter thinks the search
+        /// should stop.  This can normally happen if the presenter view is closed, or recycled to
+        /// start a new search in it.  Callers should only use this if they intend to report results
+        /// asynchronously and thus relinquish their own control over cancellation from their own
+        /// surrounding context.  If the caller intends to populate the presenter synchronously,
+        /// then this cancellation token can be ignored.</returns>
+        (FindUsagesContext context, CancellationToken cancellationToken) StartSearch(string title, bool supportsReferences);
 
         /// <summary>
         /// Call this method to display the Containing Type, Containing Member, or Kind columns
         /// </summary>
-        /// <param name="title"></param>
-        /// <param name="supportsReferences"></param>
-        /// <param name="includeContainingTypeAndMemberColumns"></param>
-        /// <param name="includeKindColumn"></param>
-        /// /// <returns></returns>
-        FindUsagesContext StartSearchWithCustomColumns(string title, bool supportsReferences, bool includeContainingTypeAndMemberColumns, bool includeKindColumn);
+        (FindUsagesContext context, CancellationToken cancellationToken) StartSearchWithCustomColumns(string title, bool supportsReferences, bool includeContainingTypeAndMemberColumns, bool includeKindColumn);
 
         /// <summary>
         /// Clears all the items from the presenter.
@@ -101,20 +102,21 @@ namespace Microsoft.CodeAnalysis.Editor.Host
 
             if (presenter != null)
             {
-                // We have multiple definitions, or we have definitions with multiple locations.
-                // Present this to the user so they can decide where they want to go to.
-                var context = presenter.StartSearch(title, supportsReferences: false);
-                foreach (var definition in nonExternalItems)
+                // We have multiple definitions, or we have definitions with multiple locations. Present this to the
+                // user so they can decide where they want to go to.
+                //
+                // We ignore the cancellation token returned by StartSearch as we're in a context where
+                // we've computed all the results and we're synchronously populating the UI with it.
+                var (context, _) = presenter.StartSearch(title, supportsReferences: false);
+                try
                 {
-                    await context.OnDefinitionFoundAsync(definition).ConfigureAwait(false);
+                    foreach (var definition in nonExternalItems)
+                        await context.OnDefinitionFoundAsync(definition, cancellationToken).ConfigureAwait(false);
                 }
-
-                // Note: we don't need to put this in a finally.  The only time we might not hit
-                // this is if cancellation or another error gets thrown.  In the former case,
-                // that means that a new search has started.  We don't care about telling the
-                // context it has completed.  In the latter case something wrong has happened
-                // and we don't want to run any more code code in this particular context.
-                await context.OnCompletedAsync().ConfigureAwait(false);
+                finally
+                {
+                    await context.OnCompletedAsync(cancellationToken).ConfigureAwait(false);
+                }
             }
 
             return true;

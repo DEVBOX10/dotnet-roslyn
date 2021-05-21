@@ -26,6 +26,9 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
         public AbstractGoToDefinitionHandler(IMetadataAsSourceFileService metadataAsSourceFileService)
             => _metadataAsSourceFileService = metadataAsSourceFileService;
 
+        public override bool MutatesSolutionState => false;
+        public override bool RequiresLSPSolution => true;
+
         public override LSP.TextDocumentIdentifier? GetTextDocumentIdentifier(LSP.TextDocumentPositionParams request) => request.TextDocument;
 
         protected async Task<LSP.Location[]> GetDefinitionAsync(LSP.TextDocumentPositionParams request, bool typeOnly, RequestContext context, CancellationToken cancellationToken)
@@ -50,7 +53,8 @@ namespace Microsoft.CodeAnalysis.LanguageServer.Handler
                         continue;
                     }
 
-                    var location = await ProtocolConversions.TextSpanToLocationAsync(definition.Document, definition.SourceSpan, cancellationToken).ConfigureAwait(false);
+                    var location = await ProtocolConversions.TextSpanToLocationAsync(
+                        definition.Document, definition.SourceSpan, definition.IsStale, cancellationToken).ConfigureAwait(false);
                     locations.AddIfNotNull(location);
                 }
             }

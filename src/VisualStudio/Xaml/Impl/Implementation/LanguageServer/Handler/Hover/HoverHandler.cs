@@ -22,7 +22,7 @@ using Microsoft.VisualStudio.Text.Adornments;
 namespace Microsoft.VisualStudio.LanguageServices.Xaml.LanguageServer.Handler
 {
     [ExportLspRequestHandlerProvider(StringConstants.XamlLanguageName), Shared]
-    [LspMethod(Methods.TextDocumentHoverName, mutatesSolutionState: false)]
+    [ProvidesMethod(Methods.TextDocumentHoverName)]
     internal class HoverHandler : AbstractStatelessRequestHandler<TextDocumentPositionParams, Hover?>
     {
         [ImportingConstructor]
@@ -30,6 +30,11 @@ namespace Microsoft.VisualStudio.LanguageServices.Xaml.LanguageServer.Handler
         public HoverHandler()
         {
         }
+
+        public override string Method => Methods.TextDocumentHoverName;
+
+        public override bool MutatesSolutionState => false;
+        public override bool RequiresLSPSolution => true;
 
         public override TextDocumentIdentifier? GetTextDocumentIdentifier(TextDocumentPositionParams request) => request.TextDocument;
 
@@ -58,7 +63,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Xaml.LanguageServer.Handler
             var descriptionBuilder = new List<TaggedText>(info.Description);
             if (info.Symbol != null)
             {
-                var description = await info.Symbol.GetDescriptionAsync(document, position, cancellationToken).ConfigureAwait(false);
+                var description = await info.Symbol.GetDescriptionAsync(document, cancellationToken).ConfigureAwait(false);
                 if (description.Any())
                 {
                     if (descriptionBuilder.Any())
