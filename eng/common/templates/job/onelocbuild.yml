@@ -53,14 +53,17 @@ jobs:
       env:
         SYSTEM_ACCESSTOKEN: $(System.AccessToken)
       inputs:
-        locProj: Localize/LocProject.json
+        locProj: eng/Localize/LocProject.json
         outDir: $(Build.ArtifactStagingDirectory)
         lclSource: ${{ parameters.LclSource }}
         lclPackageId: ${{ parameters.LclPackageId }}
         isCreatePrSelected: ${{ parameters.CreatePr }}
         ${{ if eq(parameters.CreatePr, true) }}:
           isAutoCompletePrSelected: ${{ parameters.AutoCompletePr }}
+<<<<<<< HEAD
           isUseLfLineEndingsSelected: ${{ parameters.UseLfLineEndings }}
+=======
+>>>>>>> upstream/release/dev16.11
         packageSourceAuth: patAuth
         patVariable: ${{ parameters.CeapexPat }}
         ${{ if eq(parameters.RepoType, 'gitHub') }}:
@@ -79,7 +82,7 @@ jobs:
     - task: PublishBuildArtifacts@1
       displayName: Publish LocProject.json
       inputs:
-        PathtoPublish: '$(Build.SourcesDirectory)/Localize/'
+        PathtoPublish: '$(Build.SourcesDirectory)/eng/Localize/'
         PublishLocation: Container
         ArtifactName: Loc
       condition: ${{ parameters.condition }}
