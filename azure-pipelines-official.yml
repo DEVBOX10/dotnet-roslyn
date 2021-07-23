@@ -59,6 +59,8 @@ variables:
     value: true
   - name: Insertion.TitlePrefix
     value: '[Auto Insertion]'
+  - name: Insertion.TitleSuffix
+    value: '[Skip-SymbolCheck]'
 
 stages:
 
@@ -66,11 +68,13 @@ stages:
   displayName: Build and Test
 
   jobs:
-  - template: /eng/common/templates/job/onelocbuild.yml
-    parameters:
-      CreatePr: false
-      LclSource: lclFilesfromPackage
-      LclPackageId: 'LCL-JUNO-PROD-ROSLYN'
+  - ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/release/dev16.11-vs-deps') }}:
+    - template: /eng/common/templates/job/onelocbuild.yml
+      parameters:
+        MirrorRepo: roslyn
+        MirrorBranch: release/dev16.11-vs-deps
+        LclSource: lclFilesfromPackage
+        LclPackageId: 'LCL-JUNO-PROD-ROSLYN'
 
   - template: eng/common/templates/jobs/source-build.yml
 
@@ -296,7 +300,6 @@ stages:
 - stage: insert
   dependsOn:
   - build
-  - publish_using_darc
   displayName: Insert to VS
 
   jobs:
@@ -361,6 +364,7 @@ stages:
           -insertionCount "1" `
           -insertToolset "$(Insertion.InsertToolset)" `
           -titlePrefix "$(Insertion.TitlePrefix)" `
+          -titleSuffix "$(Insertion.TitleSuffix)" `
           -queueValidation "true" `
           -requiredValueSentinel "REQUIRED" `
           -reviewerGUID "6c25b447-1d90-4840-8fde-d8b22cb8733e" `
