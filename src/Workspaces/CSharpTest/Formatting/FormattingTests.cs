@@ -4510,7 +4510,7 @@ class innerClass
 {
     public innerClass()
     {
-        myDelegate x = (int y = 1) => { return; };
+        myDelegate x = (int y=1) => { return; };
     }
 }";
 
@@ -5769,6 +5769,28 @@ void bar()
         object? x = null;
         object? y = null;
         return x! ?? (y)! ?? o[0]!;
+    }
+}";
+
+            await AssertFormatAsync(expectedCode, code);
+        }
+
+        [Fact]
+        [Trait(Traits.Feature, Traits.Features.Formatting)]
+        public async Task SpacingInNullCheckedParameter()
+        {
+            var code =
+@"class C
+{
+    static object F(string s !!)
+    {
+    }
+}";
+            var expectedCode =
+@"class C
+{
+    static object F(string s!!)
+    {
     }
 }";
 
