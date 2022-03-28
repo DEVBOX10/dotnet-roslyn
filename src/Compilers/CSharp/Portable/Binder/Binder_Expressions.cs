@@ -1917,15 +1917,13 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        private static bool ReportSimpleProgramLocalReferencedOutsideOfTopLevelStatement(SimpleNameSyntax node, Symbol symbol, BindingDiagnosticBag diagnostics)
+        private bool ReportSimpleProgramLocalReferencedOutsideOfTopLevelStatement(SimpleNameSyntax node, Symbol symbol, BindingDiagnosticBag diagnostics)
         {
-            if (symbol.ContainingSymbol is SynthesizedSimpleProgramEntryPointSymbol)
+            if (symbol.ContainingSymbol is SynthesizedSimpleProgramEntryPointSymbol &&
+                ContainingMember() is not SynthesizedSimpleProgramEntryPointSymbol)
             {
-                if (!SyntaxFacts.IsTopLevelStatement(node.Ancestors(ascendOutOfTrivia: false).OfType<GlobalStatementSyntax>().FirstOrDefault()))
-                {
-                    Error(diagnostics, ErrorCode.ERR_SimpleProgramLocalIsReferencedOutsideOfTopLevelStatement, node, node);
-                    return true;
-                }
+                Error(diagnostics, ErrorCode.ERR_SimpleProgramLocalIsReferencedOutsideOfTopLevelStatement, node, node);
+                return true;
             }
 
             return false;
@@ -5893,6 +5891,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                 cv = ConstantValue.Create(value, specialType);
                 type = GetSpecialType(specialType, diagnostics, node);
             }
+
+            if (node.Token.Kind() is SyntaxKind.SingleLineRawStringLiteralToken or SyntaxKind.MultiLineRawStringLiteralToken)
+                MessageID.IDS_FeatureRawStringLiterals.CheckFeatureAvailability(diagnostics, node, node.Location);
 
             return new BoundLiteral(node, cv, type);
         }
