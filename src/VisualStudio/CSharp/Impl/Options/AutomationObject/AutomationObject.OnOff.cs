@@ -15,6 +15,12 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.Options
             set { SetBooleanOption(FeatureOnOffOptions.AutoInsertBlockCommentStartString, value); }
         }
 
+        public int AutomaticallyFixStringContentsOnPaste
+        {
+            get { return GetBooleanOption(FeatureOnOffOptions.AutomaticallyFixStringContentsOnPaste); }
+            set { SetBooleanOption(FeatureOnOffOptions.AutomaticallyFixStringContentsOnPaste, value); }
+        }
+
         public int DisplayLineSeparators
         {
             get { return GetBooleanOption(FeatureOnOffOptions.LineSeparator); }
@@ -55,6 +61,12 @@ namespace Microsoft.VisualStudio.LanguageServices.CSharp.Options
         {
             get { return GetBooleanOption(FeatureOnOffOptions.RenameTrackingPreview); }
             set { SetBooleanOption(FeatureOnOffOptions.RenameTrackingPreview, value); }
+        }
+
+        public int NavigateAsynchronously
+        {
+            get { return GetBooleanOption(FeatureOnOffOptions.NavigateAsynchronously); }
+            set { SetBooleanOption(FeatureOnOffOptions.NavigateAsynchronously, value); }
         }
 
         public int NavigateToDecompiledSources
