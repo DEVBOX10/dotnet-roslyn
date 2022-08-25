@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.ExternalAccess.AspNetCore.Internal.EmbeddedLanguages;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.ServiceHub.Framework;
 using Microsoft.VisualStudio.Composition;
@@ -29,6 +30,7 @@ namespace Microsoft.CodeAnalysis.Remote
 
         internal static readonly ImmutableArray<Assembly> RemoteHostAssemblies =
             MefHostServices.DefaultAssemblies
+                .Add(typeof(AspNetCoreEmbeddedLanguageClassifier).Assembly)
                 .Add(typeof(BrokeredServiceBase).Assembly)
                 .Add(typeof(RemoteWorkspacesResources).Assembly);
 
@@ -62,7 +64,7 @@ namespace Microsoft.CodeAnalysis.Remote
             var exportProviderFactory = CreateExportProviderFactory(catalog);
             var exportProvider = exportProviderFactory.CreateExportProvider();
 
-            return new RemoteWorkspace(VisualStudioMefHostServices.Create(exportProvider), WorkspaceKind.RemoteWorkspace);
+            return new RemoteWorkspace(VisualStudioMefHostServices.Create(exportProvider));
         }
 
         public virtual RemoteWorkspace GetWorkspace()

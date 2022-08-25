@@ -36,13 +36,11 @@ namespace Microsoft.CodeAnalysis.Remote.UnitTests
         {
             using var workspace = CreateWorkspace();
 
-            var exportProvider = (IMefHostExportProvider)workspace.Services.HostServices;
+            var exportProvider = workspace.Services.SolutionServices.ExportProvider;
             var listenerProvider = exportProvider.GetExportedValue<AsynchronousOperationListenerProvider>();
             var globalOptions = exportProvider.GetExportedValue<IGlobalOptionService>();
 
-            globalOptions.SetGlobalOption(new OptionKey(RemoteHostOptions.SolutionChecksumMonitorBackOffTimeSpanInMS), 1);
-
-            var checksumUpdater = new SolutionChecksumUpdater(workspace, globalOptions, listenerProvider, CancellationToken.None);
+            var checksumUpdater = new SolutionChecksumUpdater(workspace, listenerProvider, CancellationToken.None);
             var service = workspace.Services.GetRequiredService<IRemoteHostClientProvider>();
 
             // make sure client is ready

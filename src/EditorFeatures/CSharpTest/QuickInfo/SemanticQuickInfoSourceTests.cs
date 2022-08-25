@@ -14,7 +14,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Microsoft.CodeAnalysis.Editor.UnitTests.QuickInfo;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
-using Microsoft.CodeAnalysis.LanguageServices;
+using Microsoft.CodeAnalysis.LanguageService;
 using Microsoft.CodeAnalysis.QuickInfo;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
@@ -144,6 +144,12 @@ using System.Linq;
         private Task TestInMethodAsync(string markup, params Action<QuickInfoItem>[] expectedResults)
         {
             var markupInMethod = "class C { void M() { " + markup + " } }";
+            return TestWithUsingsAsync(markupInMethod, expectedResults);
+        }
+
+        private Task TestInMethodAsync(string markup, string extraSource, params Action<QuickInfoItem>[] expectedResults)
+        {
+            var markupInMethod = "class C { void M() { " + markup + " } }" + extraSource;
             return TestWithUsingsAsync(markupInMethod, expectedResults);
         }
 
@@ -1820,17 +1826,21 @@ class C
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
-        public async Task TestStringLiteralUTF8_01()
+        public async Task TestStringLiteralUtf8_01()
         {
             await TestInMethodAsync(@"var f = ""Goo""u8$$",
-                MainDescription("byte[]"));
+                TestSources.Span,
+                MainDescription("readonly ref struct System.ReadOnlySpan<T>"),
+                TypeParameterMap($"\r\nT {FeaturesResources.is_} byte"));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
-        public async Task TestStringLiteralUTF8_02()
+        public async Task TestStringLiteralUtf8_02()
         {
             await TestInMethodAsync(@"var f = ""Goo""U8$$",
-                MainDescription("byte[]"));
+                TestSources.Span,
+                MainDescription("readonly ref struct System.ReadOnlySpan<T>"),
+                TypeParameterMap($"\r\nT {FeaturesResources.is_} byte"));
         }
 
         [WorkItem(1280, "https://github.com/dotnet/roslyn/issues/1280")]
@@ -1842,17 +1852,21 @@ class C
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
-        public async Task TestVerbatimStringLiteralUTF8_01()
+        public async Task TestVerbatimStringLiteralUtf8_01()
         {
             await TestInMethodAsync(@"string f = @""cat""u8$$",
-                MainDescription("byte[]"));
+                TestSources.Span,
+                MainDescription("readonly ref struct System.ReadOnlySpan<T>"),
+                TypeParameterMap($"\r\nT {FeaturesResources.is_} byte"));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
-        public async Task TestVerbatimStringLiteralUTF8_02()
+        public async Task TestVerbatimStringLiteralUtf8_02()
         {
             await TestInMethodAsync(@"string f = @""cat""U8$$",
-                MainDescription("byte[]"));
+                TestSources.Span,
+                MainDescription("readonly ref struct System.ReadOnlySpan<T>"),
+                TypeParameterMap($"\r\nT {FeaturesResources.is_} byte"));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -1863,17 +1877,21 @@ class C
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
-        public async Task TestRawStringLiteralUTF8_01()
+        public async Task TestRawStringLiteralUtf8_01()
         {
             await TestInMethodAsync(@"string f = """"""Goo""""""u8$$",
-                MainDescription("byte[]"));
+                TestSources.Span,
+                MainDescription("readonly ref struct System.ReadOnlySpan<T>"),
+                TypeParameterMap($"\r\nT {FeaturesResources.is_} byte"));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
-        public async Task TestRawStringLiteralUTF8_02()
+        public async Task TestRawStringLiteralUtf8_02()
         {
             await TestInMethodAsync(@"string f = """"""Goo""""""U8$$",
-                MainDescription("byte[]"));
+                TestSources.Span,
+                MainDescription("readonly ref struct System.ReadOnlySpan<T>"),
+                TypeParameterMap($"\r\nT {FeaturesResources.is_} byte"));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -1886,21 +1904,25 @@ class C
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
-        public async Task TestRawStringLiteralMultilineUTF8_01()
+        public async Task TestRawStringLiteralMultilineUtf8_01()
         {
             await TestInMethodAsync(@"string f = """"""
                 Goo
     """"""u8$$",
-                MainDescription("byte[]"));
+                TestSources.Span,
+                MainDescription("readonly ref struct System.ReadOnlySpan<T>"),
+                TypeParameterMap($"\r\nT {FeaturesResources.is_} byte"));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
-        public async Task TestRawStringLiteralMultilineUTF8_02()
+        public async Task TestRawStringLiteralMultilineUtf8_02()
         {
             await TestInMethodAsync(@"string f = """"""
                 Goo
     """"""U8$$",
-                MainDescription("byte[]"));
+                TestSources.Span,
+                MainDescription("readonly ref struct System.ReadOnlySpan<T>"),
+                TypeParameterMap($"\r\nT {FeaturesResources.is_} byte"));
         }
 
         [WorkItem(1280, "https://github.com/dotnet/roslyn/issues/1280")]
@@ -6344,7 +6366,7 @@ class C
 </Workspace>
 ";
             using var workspace = TestWorkspace.Create(XElement.Parse(workspaceDefinition), workspaceKind: WorkspaceKind.Interactive);
-            await TestWithOptionsAsync(workspace, MainDescription($"({ FeaturesResources.parameter }) int x = 1"));
+            await TestWithOptionsAsync(workspace, MainDescription($"({FeaturesResources.parameter}) int x = 1"));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -6388,7 +6410,7 @@ public class C
     }
 }
 ",
-                MainDescription($"({ FeaturesResources.local_variable }) ValueTuple y"));
+                MainDescription($"({FeaturesResources.local_variable}) ValueTuple y"));
         }
 
         [WorkItem(18311, "https://github.com/dotnet/roslyn/issues/18311")]
@@ -6424,7 +6446,7 @@ public class C
     }
 }
 ",
-                MainDescription($"({ FeaturesResources.local_variable }) ValueTuple<int> y"));
+                MainDescription($"({FeaturesResources.local_variable}) ValueTuple<int> y"));
         }
 
         [WorkItem(18311, "https://github.com/dotnet/roslyn/issues/18311")]
@@ -6460,7 +6482,7 @@ public class C
     }
 }
 ",
-                MainDescription($"({ FeaturesResources.local_variable }) (int, int) y"));
+                MainDescription($"({FeaturesResources.local_variable}) (int, int) y"));
         }
 
         [WorkItem(18311, "https://github.com/dotnet/roslyn/issues/18311")]
@@ -6734,7 +6756,7 @@ class Program
     }
 }
 ",
-            MainDescription($"({ FeaturesResources.parameter }) ? b"));
+            MainDescription($"({FeaturesResources.parameter}) ? b"));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -8313,6 +8335,7 @@ $@"
     'a {FeaturesResources.is_} delegate string (ref int)"));
         }
 
+        [WorkItem(61320, "https://github.com/dotnet/roslyn/issues/61320")]
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
         public async Task TestSingleTupleType()
         {
@@ -8323,7 +8346,8 @@ $@"
     $$M(default);
   }",
                 MainDescription(@"void C.M((int x, string y) t)"),
-                NoTypeParameterMap);
+                NoTypeParameterMap,
+                AnonymousTypes(string.Empty));
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)]
@@ -8546,7 +8570,7 @@ class Program
     void M(string s) { }
 }
 ";
-            await TestWithOptionsAsync(Options.Regular.WithLanguageVersion(LanguageVersionFacts.CSharpNext), source,
+            await TestWithOptionsAsync(Options.Regular.WithLanguageVersion(LanguageVersion.CSharp11), source,
                 MainDescription($"({FeaturesResources.parameter}) string s"));
         }
 
@@ -8559,7 +8583,7 @@ class Program
     void M([My(nameof($$s))] string s) { }
 }
 ";
-            await TestWithOptionsAsync(Options.Regular.WithLanguageVersion(LanguageVersionFacts.CSharpNext), source,
+            await TestWithOptionsAsync(Options.Regular.WithLanguageVersion(LanguageVersion.CSharp11), source,
                 MainDescription($"({FeaturesResources.parameter}) string s"));
         }
 
@@ -8576,7 +8600,7 @@ class Program
     }
 }
 ";
-            await TestWithOptionsAsync(Options.Regular.WithLanguageVersion(LanguageVersionFacts.CSharpNext), source,
+            await TestWithOptionsAsync(Options.Regular.WithLanguageVersion(LanguageVersion.CSharp11), source,
                 MainDescription($"({FeaturesResources.parameter}) string s"));
         }
     }

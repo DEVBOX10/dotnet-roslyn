@@ -85,7 +85,7 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
             CodeActionOptionsProvider options,
             CancellationToken cancellationToken)
         {
-            var extensionManager = document.Project.Solution.Workspace.Services.GetRequiredService<IExtensionManager>();
+            var extensionManager = document.Project.Solution.Services.GetRequiredService<IExtensionManager>();
 
             foreach (var provider in GetProviders(document))
             {
@@ -93,7 +93,7 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
                 RefactoringToMetadataMap.TryGetValue(provider, out var providerMetadata);
 
                 var refactoring = await GetRefactoringFromProviderAsync(
-                    document, state, provider, providerMetadata, extensionManager, options, cancellationToken).ConfigureAwait(false);
+                    document, state, provider, providerMetadata, extensionManager, options, isBlocking: false, cancellationToken).ConfigureAwait(false);
 
                 if (refactoring != null)
                 {
@@ -109,12 +109,13 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
             TextSpan state,
             CodeActionRequestPriority priority,
             CodeActionOptionsProvider options,
+            bool isBlocking,
             Func<string, IDisposable?> addOperationScope,
             CancellationToken cancellationToken)
         {
             using (Logger.LogBlock(FunctionId.Refactoring_CodeRefactoringService_GetRefactoringsAsync, cancellationToken))
             {
-                var extensionManager = document.Project.Solution.Workspace.Services.GetRequiredService<IExtensionManager>();
+                var extensionManager = document.Project.Solution.Services.GetRequiredService<IExtensionManager>();
                 using var _ = ArrayBuilder<Task<CodeRefactoring?>>.GetInstance(out var tasks);
 
                 foreach (var provider in GetProviders(document))
@@ -131,7 +132,7 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
                             using (RoslynEventSource.LogInformationalBlock(FunctionId.Refactoring_CodeRefactoringService_GetRefactoringsAsync, providerName, cancellationToken))
                             {
                                 return GetRefactoringFromProviderAsync(document, state, provider, providerMetadata,
-                                    extensionManager, options, cancellationToken);
+                                    extensionManager, options, isBlocking, cancellationToken);
                             }
                         },
                         cancellationToken));
@@ -149,6 +150,7 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
             CodeChangeProviderMetadata? providerMetadata,
             IExtensionManager extensionManager,
             CodeActionOptionsProvider options,
+            bool isBlocking,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -177,6 +179,7 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
                         }
                     },
                     options,
+                    isBlocking,
                     cancellationToken);
 
                 var task = provider.ComputeRefactoringsAsync(context) ?? Task.CompletedTask;
@@ -189,7 +192,7 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
 
                 var fixAllProviderInfo = extensionManager.PerformFunction(
                     provider, () => ImmutableInterlocked.GetOrAdd(ref _fixAllProviderMap, provider, FixAllProviderInfo.Create), defaultValue: null);
-                return new CodeRefactoring(provider, actions.ToImmutable(), fixAllProviderInfo);
+                return new CodeRefactoring(provider, actions.ToImmutable(), fixAllProviderInfo, options);
             }
             catch (OperationCanceledException)
             {
@@ -208,7 +211,7 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
         private static ImmutableArray<CodeRefactoringProvider> GetProjectRefactorings(Project project)
         {
             // TODO (https://github.com/dotnet/roslyn/issues/4932): Don't restrict refactorings in Interactive
-            if (project.Solution.Workspace.Kind == WorkspaceKind.Interactive)
+            if (project.Solution.WorkspaceKind == WorkspaceKind.Interactive)
                 return ImmutableArray<CodeRefactoringProvider>.Empty;
 
             return ProjectCodeRefactoringProvider.GetExtensions(project);
@@ -217,12 +220,8 @@ namespace Microsoft.CodeAnalysis.CodeRefactorings
         private class ProjectCodeRefactoringProvider
             : AbstractProjectExtensionProvider<ProjectCodeRefactoringProvider, CodeRefactoringProvider, ExportCodeRefactoringProviderAttribute>
         {
-            protected override bool SupportsLanguage(ExportCodeRefactoringProviderAttribute exportAttribute, string language)
-            {
-                return exportAttribute.Languages == null
-                    || exportAttribute.Languages.Length == 0
-                    || exportAttribute.Languages.Contains(language);
-            }
+            protected override ImmutableArray<string> GetLanguages(ExportCodeRefactoringProviderAttribute exportAttribute)
+                => exportAttribute.Languages.ToImmutableArray();
 
             protected override bool TryGetExtensionsFromReference(AnalyzerReference reference, out ImmutableArray<CodeRefactoringProvider> extensions)
             {
