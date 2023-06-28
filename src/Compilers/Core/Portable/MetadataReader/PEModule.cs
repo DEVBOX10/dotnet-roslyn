@@ -1097,9 +1097,9 @@ namespace Microsoft.CodeAnalysis
             return FindTargetAttribute(token, AttributeDescription.UnscopedRefAttribute).HasValue;
         }
 
-        internal bool HasRefSafetyRulesAttribute(EntityHandle token, out int version)
+        internal bool HasRefSafetyRulesAttribute(EntityHandle token, out int version, out bool foundAttributeType)
         {
-            AttributeInfo info = FindTargetAttribute(token, AttributeDescription.RefSafetyRulesAttribute);
+            AttributeInfo info = FindTargetAttribute(MetadataReader, token, AttributeDescription.RefSafetyRulesAttribute, out foundAttributeType);
             if (info.HasValue)
             {
                 Debug.Assert(info.SignatureIndex == 0);
@@ -1110,6 +1110,23 @@ namespace Microsoft.CodeAnalysis
                 }
             }
             version = 0;
+            return false;
+        }
+
+        internal bool HasInlineArrayAttribute(TypeDefinitionHandle token, out int length)
+        {
+            AttributeInfo info = FindTargetAttribute(token, AttributeDescription.InlineArrayAttribute);
+            if (info.HasValue)
+            {
+                Debug.Assert(info.SignatureIndex == 0);
+                if (TryExtractValueFromAttribute(info.Handle, out int value, s_attributeIntValueExtractor))
+                {
+                    length = value;
+                    return true;
+                }
+            }
+
+            length = 0;
             return false;
         }
 
@@ -2262,16 +2279,23 @@ namespace Microsoft.CodeAnalysis
 
         internal AttributeInfo FindTargetAttribute(EntityHandle hasAttribute, AttributeDescription description)
         {
-            return FindTargetAttribute(MetadataReader, hasAttribute, description);
+            return FindTargetAttribute(MetadataReader, hasAttribute, description, out _);
         }
 
-        internal static AttributeInfo FindTargetAttribute(MetadataReader metadataReader, EntityHandle hasAttribute, AttributeDescription description)
+        internal static AttributeInfo FindTargetAttribute(MetadataReader metadataReader, EntityHandle hasAttribute, AttributeDescription description, out bool foundAttributeType)
         {
+            foundAttributeType = false;
+
             try
             {
                 foreach (var attributeHandle in metadataReader.GetCustomAttributes(hasAttribute))
                 {
-                    int signatureIndex = GetTargetAttributeSignatureIndex(metadataReader, attributeHandle, description);
+                    bool matchedAttributeType;
+                    int signatureIndex = GetTargetAttributeSignatureIndex(metadataReader, attributeHandle, description, out matchedAttributeType);
+                    if (matchedAttributeType)
+                    {
+                        foundAttributeType = true;
+                    }
                     if (signatureIndex != -1)
                     {
                         // We found a match
@@ -2620,7 +2644,7 @@ namespace Microsoft.CodeAnalysis
         /// </returns>
         internal int GetTargetAttributeSignatureIndex(CustomAttributeHandle customAttribute, AttributeDescription description)
         {
-            return GetTargetAttributeSignatureIndex(MetadataReader, customAttribute, description);
+            return GetTargetAttributeSignatureIndex(MetadataReader, customAttribute, description, out _);
         }
 
         /// <summary>
@@ -2633,12 +2657,13 @@ namespace Microsoft.CodeAnalysis
         /// Handle of the custom attribute.
         /// </param>
         /// <param name="description">The attribute to match.</param>
+        /// <param name="matchedAttributeType">The custom attribute matched the target attribute namespace and type.</param>
         /// <returns>
         /// An index of the target constructor signature in
         /// signatures array, -1 if
         /// this is not the target attribute.
         /// </returns>
-        private static int GetTargetAttributeSignatureIndex(MetadataReader metadataReader, CustomAttributeHandle customAttribute, AttributeDescription description)
+        private static int GetTargetAttributeSignatureIndex(MetadataReader metadataReader, CustomAttributeHandle customAttribute, AttributeDescription description, out bool matchedAttributeType)
         {
             const int No = -1;
             EntityHandle ctor;
@@ -2646,8 +2671,11 @@ namespace Microsoft.CodeAnalysis
             // Check namespace and type name and get signature if a match is found
             if (!IsTargetAttribute(metadataReader, customAttribute, description.Namespace, description.Name, out ctor, description.MatchIgnoringCase))
             {
+                matchedAttributeType = false;
                 return No;
             }
+
+            matchedAttributeType = true;
 
             try
             {

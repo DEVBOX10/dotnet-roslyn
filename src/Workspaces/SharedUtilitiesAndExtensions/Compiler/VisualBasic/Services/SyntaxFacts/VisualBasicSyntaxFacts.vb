@@ -84,6 +84,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.LanguageService
             Return False
         End Function
 
+        Public Function SupportsTupleDeconstruction(options As ParseOptions) As Boolean Implements ISyntaxFacts.SupportsTupleDeconstruction
+            Return False
+        End Function
+
         Public Function ParseToken(text As String) As SyntaxToken Implements ISyntaxFacts.ParseToken
             Return SyntaxFactory.ParseToken(text, startStatement:=True)
         End Function
@@ -1106,7 +1110,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.LanguageService
             Return constructors
         End Function
 
-        Private Sub AppendConstructors(members As SyntaxList(Of StatementSyntax), constructors As List(Of SyntaxNode), cancellationToken As CancellationToken)
+        Private Shared Sub AppendConstructors(members As SyntaxList(Of StatementSyntax), constructors As List(Of SyntaxNode), cancellationToken As CancellationToken)
             For Each member As StatementSyntax In members
                 cancellationToken.ThrowIfCancellationRequested()
 

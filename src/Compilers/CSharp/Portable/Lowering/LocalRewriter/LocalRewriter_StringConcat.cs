@@ -490,11 +490,14 @@ namespace Microsoft.CodeAnalysis.CSharp
                         objectToStringMethod),
                     whenNullOpt: null,
                     id: currentConditionalAccessID,
+                    forceCopyOfNullableValueType: false,
                     type: _compilation.GetSpecialType(SpecialType.System_String));
             }
 
             static bool isFieldOfMarshalByRef(BoundExpression expr, CSharpCompilation compilation)
             {
+                Debug.Assert(!IsCapturedPrimaryConstructorParameter(expr));
+
                 if (expr is BoundFieldAccess fieldAccess)
                 {
                     return DiagnosticsPass.IsNonAgileFieldAccess(fieldAccess, compilation);

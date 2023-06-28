@@ -57,26 +57,25 @@ public class GlobalOptionsTests
             AccessedOptionKeys.Add(key);
         }
 
-        public T GetOption<T>(Option2<T> option)
+        bool IOptionsReader.TryGetOption<T>(OptionKey2 optionKey, out T value)
         {
-            OnOptionAccessed(new OptionKey2(option));
-            return (T)OptionsTestHelpers.GetDifferentValue(typeof(T), option.DefaultValue)!;
+            value = GetOption<T>(optionKey);
+            return true;
         }
+
+        public T GetOption<T>(Option2<T> option)
+            => GetOption<T>(new OptionKey2(option));
 
         public T GetOption<T>(PerLanguageOption2<T> option, string languageName)
-        {
-            OnOptionAccessed(new OptionKey2(option, languageName));
-            return (T)OptionsTestHelpers.GetDifferentValue(typeof(T), option.DefaultValue)!;
-        }
+            => GetOption<T>(new OptionKey2(option, languageName));
 
         public T GetOption<T>(OptionKey2 optionKey)
-            => throw new NotImplementedException();
+        {
+            OnOptionAccessed(optionKey);
+            return (T)OptionsTestHelpers.GetDifferentValue(typeof(T), optionKey.Option.DefaultValue)!;
+        }
 
         #region Unused
-
-#pragma warning disable CS0067
-        public event EventHandler<OptionChangedEventArgs>? OptionChanged;
-#pragma warning restore
 
         public ImmutableArray<object?> GetOptions(ImmutableArray<OptionKey2> optionKeys)
             => throw new NotImplementedException();
@@ -94,6 +93,12 @@ public class GlobalOptionsTests
             => throw new NotImplementedException();
 
         public bool SetGlobalOptions(ImmutableArray<KeyValuePair<OptionKey2, object?>> options)
+            => throw new NotImplementedException();
+
+        public void AddOptionChangedHandler(object target, EventHandler<OptionChangedEventArgs> handler)
+            => throw new NotImplementedException();
+
+        public void RemoveOptionChangedHandler(object target, EventHandler<OptionChangedEventArgs> handler)
             => throw new NotImplementedException();
 
         #endregion
@@ -116,7 +121,7 @@ public class GlobalOptionsTests
                     // default value for the option -- may be different then default(T):
                     var defaultValue = property.GetValue(defaultOptions);
 
-                    if (OptionsTestHelpers.IsOptionValueType(property.PropertyType))
+                    if (OptionDefinition.IsSupportedOptionType(property.PropertyType))
                     {
                         if (IsStoredInGlobalOptions(property, language))
                         {
@@ -125,7 +130,7 @@ public class GlobalOptionsTests
                     }
                     else
                     {
-                        var propertyType = OptionsTestHelpers.GetNonNullableType(property.PropertyType);
+                        var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
 
                         if (propertyType != property.PropertyType)
                         {

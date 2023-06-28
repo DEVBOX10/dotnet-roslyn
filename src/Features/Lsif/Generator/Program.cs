@@ -15,10 +15,10 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Build.Locator;
-using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.LanguageServerIndexFormat.Generator.Writing;
 using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.CodeAnalysis.Shared.Extensions;
+using Roslyn.Utilities;
 using CompilerInvocationsReader = Microsoft.Build.Logging.StructuredLogger.CompilerInvocationsReader;
 
 namespace Microsoft.CodeAnalysis.LanguageServerIndexFormat.Generator
@@ -89,12 +89,12 @@ namespace Microsoft.CodeAnalysis.LanguageServerIndexFormat.Generator
 
                 if (solution != null)
                 {
-                    await LocateAndRegisterMSBuild(logFile);
+                    await LocateAndRegisterMSBuild(logFile, solution.Directory);
                     await GenerateFromSolutionAsync(solution, lsifWriter, logFile, cancellationToken);
                 }
                 else if (project != null)
                 {
-                    await LocateAndRegisterMSBuild(logFile);
+                    await LocateAndRegisterMSBuild(logFile, project.Directory);
                     await GenerateFromProjectAsync(project, lsifWriter, logFile, cancellationToken);
                 }
                 else if (compilerInvocation != null)
@@ -103,8 +103,14 @@ namespace Microsoft.CodeAnalysis.LanguageServerIndexFormat.Generator
                 }
                 else
                 {
-                    await LocateAndRegisterMSBuild(logFile);
-                    await GenerateFromBinaryLogAsync(binLog!, lsifWriter, logFile, cancellationToken);
+                    Contract.ThrowIfNull(binLog);
+
+                    // If we're loading a binlog, we don't need to discover an MSBuild that matches the SDK or source that we're processing, since we're not running
+                    // any MSBuild builds or tasks/targets in our process. Since we're reading a binlog, simply none of the SDK will be loaded. We might load analyzers
+                    // or source generators from the SDK or user-built, but those must generally target netstandard2.0 so we don't really expect them to have problems loading
+                    // on one version of the runtime versus another.
+                    await LocateAndRegisterMSBuild(logFile, sourceDirectory: null);
+                    await GenerateFromBinaryLogAsync(binLog, lsifWriter, logFile, cancellationToken);
                 }
             }
             catch (Exception e)
@@ -120,20 +126,25 @@ namespace Microsoft.CodeAnalysis.LanguageServerIndexFormat.Generator
             await logFile.WriteLineAsync("Generation complete.");
         }
 
-        private static async Task LocateAndRegisterMSBuild(TextWriter logFile)
+        private static async Task LocateAndRegisterMSBuild(TextWriter logFile, DirectoryInfo? sourceDirectory)
         {
             // Make sure we pick the highest version
-            var msbuildInstance = MSBuildLocator.QueryVisualStudioInstances().OrderByDescending(i => i.Version).FirstOrDefault();
-            if (msbuildInstance == null)
+            var options = VisualStudioInstanceQueryOptions.Default;
+
+            if (sourceDirectory != null)
+                options.WorkingDirectory = sourceDirectory.FullName;
+
+            var msBuildInstance = MSBuildLocator.QueryVisualStudioInstances(options).OrderByDescending(i => i.Version).FirstOrDefault();
+            if (msBuildInstance == null)
             {
-                throw new Exception("No MSBuild instances installed with Visual Studio could be found.");
+                throw new Exception($"No MSBuild instances could be found; discovery types being used: {options.DiscoveryTypes}.");
             }
             else
             {
-                await logFile.WriteLineAsync($"Using the MSBuild instance located at {msbuildInstance.MSBuildPath}.");
+                await logFile.WriteLineAsync($"Using the MSBuild instance located at {msBuildInstance.MSBuildPath}.");
             }
 
-            MSBuildLocator.RegisterInstance(msbuildInstance);
+            MSBuildLocator.RegisterInstance(msBuildInstance);
         }
 
         private static async Task GenerateFromProjectAsync(
@@ -180,7 +191,7 @@ namespace Microsoft.CodeAnalysis.LanguageServerIndexFormat.Generator
             var options = GeneratorOptions.Default;
 
             await logFile.WriteLineAsync($"Load completed in {solutionLoadStopwatch.Elapsed.ToDisplayString()}.");
-            var lsifGenerator = Generator.CreateAndWriteCapabilitiesVertex(lsifWriter);
+            var lsifGenerator = Generator.CreateAndWriteCapabilitiesVertex(lsifWriter, logFile);
 
             var totalTimeInGenerationAndCompilationFetchStopwatch = Stopwatch.StartNew();
             var totalTimeInGenerationPhase = TimeSpan.Zero;
@@ -218,7 +229,7 @@ namespace Microsoft.CodeAnalysis.LanguageServerIndexFormat.Generator
             await logFile.WriteLineAsync($"Load of the project completed in {compilerInvocationLoadStopwatch.Elapsed.ToDisplayString()}.");
 
             var generationStopwatch = Stopwatch.StartNew();
-            var lsifGenerator = Generator.CreateAndWriteCapabilitiesVertex(lsifWriter);
+            var lsifGenerator = Generator.CreateAndWriteCapabilitiesVertex(lsifWriter, logFile);
 
             await lsifGenerator.GenerateForProjectAsync(project, GeneratorOptions.Default, cancellationToken);
             await logFile.WriteLineAsync($"Generation for {project.FilePath} completed in {generationStopwatch.Elapsed.ToDisplayString()}.");
@@ -234,19 +245,23 @@ namespace Microsoft.CodeAnalysis.LanguageServerIndexFormat.Generator
 
             await logFile.WriteLineAsync($"Load of the binlog complete; {msbuildInvocations.Length} invocations were found.");
 
-            var lsifGenerator = Generator.CreateAndWriteCapabilitiesVertex(lsifWriter);
+            var lsifGenerator = Generator.CreateAndWriteCapabilitiesVertex(lsifWriter, logFile);
 
             foreach (var msbuildInvocation in msbuildInvocations)
             {
-                // Convert from the MSBuild "CompilerInvocation" type to our type that we use for our JSON-input mode already.
-                var invocationInfo = new CompilerInvocation.CompilerInvocationInfo
-                {
-                    Arguments = msbuildInvocation.CommandLineArguments,
-                    ProjectFilePath = msbuildInvocation.ProjectFilePath,
-                    Tool = msbuildInvocation.Language == Microsoft.Build.Logging.StructuredLogger.CompilerInvocation.CSharp ? "csc" : "vbc"
-                };
+                var workspace = new AdhocWorkspace(await Composition.CreateHostServicesAsync());
 
-                var project = await CompilerInvocation.CreateFromInvocationInfoAsync(invocationInfo);
+                var projectInfo = CommandLineProject.CreateProjectInfo(
+                    Path.GetFileNameWithoutExtension(msbuildInvocation.ProjectFilePath),
+                    msbuildInvocation.Language == Microsoft.Build.Logging.StructuredLogger.CompilerInvocation.CSharp ? LanguageNames.CSharp : LanguageNames.VisualBasic,
+                    msbuildInvocation.CommandLineArguments,
+                    msbuildInvocation.ProjectDirectory,
+                    workspace)
+                    .WithFilePath(msbuildInvocation.ProjectFilePath);
+
+                workspace.OnProjectAdded(projectInfo);
+
+                var project = workspace.CurrentSolution.Projects.Single();
 
                 var generationStopwatch = Stopwatch.StartNew();
                 await lsifGenerator.GenerateForProjectAsync(project, GeneratorOptions.Default, cancellationToken);

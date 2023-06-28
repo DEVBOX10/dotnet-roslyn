@@ -218,7 +218,6 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         internal override bool InheritsBaseMethodAttributes => true;
         internal override bool GenerateDebugInfo => !this.IsAsync;
-        internal override bool IsExpressionBodied => false;
 
         internal override int CalculateLocalSyntaxOffset(int localPosition, SyntaxTree localTree)
         {
@@ -233,5 +232,10 @@ namespace Microsoft.CodeAnalysis.CSharp
         bool ISynthesizedMethodBodyImplementationSymbol.HasMethodBodyDependency => true;
 
         public ClosureKind ClosureKind { get; }
+
+        internal override ExecutableCodeBinder? TryGetBodyBinder(BinderFactory? binderFactoryOpt = null, bool ignoreAccessibility = false)
+        {
+            throw ExceptionUtilities.Unreachable();
+        }
     }
 }

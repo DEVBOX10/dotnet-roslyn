@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using Microsoft.CodeAnalysis.Options;
 using Microsoft.CodeAnalysis.Storage;
 
@@ -14,32 +15,32 @@ internal static class WorkspaceConfigurationOptionsStorage
             CacheStorage: globalOptions.GetOption(CloudCacheFeatureFlag) ? StorageDatabase.CloudCache : globalOptions.GetOption(Database),
             EnableOpeningSourceGeneratedFiles: globalOptions.GetOption(EnableOpeningSourceGeneratedFilesInWorkspace) ??
                                                globalOptions.GetOption(EnableOpeningSourceGeneratedFilesInWorkspaceFeatureFlag),
-            DisableReferenceManagerRecoverableMetadata: globalOptions.GetOption(DisableReferenceManagerRecoverableMetadata),
-            DisableBackgroundCompilation: globalOptions.GetOption(DisableBackgroundCompilation),
-            DisableSharedSyntaxTrees: globalOptions.GetOption(DisableSharedSyntaxTrees));
+            DisableSharedSyntaxTrees: globalOptions.GetOption(DisableSharedSyntaxTrees),
+            DeferCreatingRecoverableText: globalOptions.GetOption(DeferCreatingRecoverableText),
+            DisableRecoverableText: globalOptions.GetOption(DisableRecoverableText));
 
     public static readonly Option2<StorageDatabase> Database = new(
-        "Storage", "Database", WorkspaceConfigurationOptions.Default.CacheStorage);
+        "dotnet_storage_database", WorkspaceConfigurationOptions.Default.CacheStorage, serializer: EditorConfigValueSerializer.CreateSerializerForEnum<StorageDatabase>());
 
     public static readonly Option2<bool> CloudCacheFeatureFlag = new(
-        "Storage", "CloudCacheFeatureFlag", WorkspaceConfigurationOptions.Default.CacheStorage == StorageDatabase.CloudCache);
-
-    public static readonly Option2<bool> DisableReferenceManagerRecoverableMetadata = new(
-        "WorkspaceConfigurationOptions", "DisableReferenceManagerRecoverableMetadata", WorkspaceConfigurationOptions.Default.DisableReferenceManagerRecoverableMetadata);
-
-    public static readonly Option2<bool> DisableBackgroundCompilation = new(
-        "WorkspaceConfigurationOptions", "DisableBackgroundCompilation", WorkspaceConfigurationOptions.Default.DisableBackgroundCompilation);
+        "dotnet_storage_cloud_cache", WorkspaceConfigurationOptions.Default.CacheStorage == StorageDatabase.CloudCache);
 
     public static readonly Option2<bool> DisableSharedSyntaxTrees = new(
-        "WorkspaceConfigurationOptions", "DisableSharedSyntaxTrees", WorkspaceConfigurationOptions.Default.DisableSharedSyntaxTrees);
+        "dotnet_disable_shared_syntax_trees", WorkspaceConfigurationOptions.Default.DisableSharedSyntaxTrees);
+
+    public static readonly Option2<bool> DeferCreatingRecoverableText = new(
+        "dotnet_defer_creating_recoverable_text", WorkspaceConfigurationOptions.Default.DeferCreatingRecoverableText);
+
+    public static readonly Option2<bool> DisableRecoverableText = new(
+        "dotnet_disable_recoverable_text", WorkspaceConfigurationOptions.Default.DisableRecoverableText);
 
     /// <summary>
     /// This option allows the user to enable this. We are putting this behind a feature flag for now since we could have extensions
     /// surprised by this and we want some time to work through those issues.
     /// </summary>
     public static readonly Option2<bool?> EnableOpeningSourceGeneratedFilesInWorkspace = new(
-        "WorkspaceConfigurationOptions", "EnableOpeningSourceGeneratedFilesInWorkspace", defaultValue: null);
+        "dotnet_enable_opening_source_generated_files_in_workspace", defaultValue: null);
 
     public static readonly Option2<bool> EnableOpeningSourceGeneratedFilesInWorkspaceFeatureFlag = new(
-        "WorkspaceConfigurationOptions", "EnableOpeningSourceGeneratedFilesInWorkspaceFeatureFlag", WorkspaceConfigurationOptions.Default.EnableOpeningSourceGeneratedFiles);
+        "dotnet_enable_opening_source_generated_files_in_workspace_feature_flag", WorkspaceConfigurationOptions.Default.EnableOpeningSourceGeneratedFiles);
 }

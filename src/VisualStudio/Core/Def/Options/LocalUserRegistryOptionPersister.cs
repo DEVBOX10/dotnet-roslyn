@@ -3,13 +3,9 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Options;
-using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.Win32;
 using Roslyn.Utilities;
@@ -29,13 +25,9 @@ namespace Microsoft.VisualStudio.LanguageServices.Options
             _registryKey = registryKey;
         }
 
-        public static async Task<LocalUserRegistryOptionPersister> CreateAsync(IAsyncServiceProvider provider)
+        public static LocalUserRegistryOptionPersister Create(ILocalRegistry4 localRegistry)
         {
             // SLocalRegistry service is free-threaded -- see https://devdiv.visualstudio.com/DevDiv/_workitems/edit/1408594.
-            // Note: not using IAsyncServiceProvider.GetServiceAsync<TService, TInterface> since the extension method might switch to UI thread.
-            // See https://devdiv.visualstudio.com/DevDiv/_workitems/edit/1408619/.
-            var localRegistry = (ILocalRegistry4?)await provider.GetServiceAsync(typeof(SLocalRegistry)).ConfigureAwait(false);
-            Contract.ThrowIfNull(localRegistry);
             Contract.ThrowIfFalse(ErrorHandler.Succeeded(localRegistry.GetLocalRegistryRootEx((uint)__VsLocalRegistryType.RegType_UserSettings, out var rootHandle, out var rootPath)));
 
             var handle = (__VsLocalRegistryRootHandle)rootHandle;
@@ -105,6 +97,21 @@ namespace Microsoft.VisualStudio.LanguageServices.Options
                 {
                     // Otherwise we can just store normally
                     value = subKey.GetValue(key, defaultValue: optionKey.Option.DefaultValue);
+
+                    if (optionKey.Option.Type.IsEnum)
+                    {
+                        try
+                        {
+                            value = Enum.ToObject(optionKey.Option.Type, value);
+                        }
+                        catch (ArgumentException)
+                        {
+                            // the value may be out of range for the base type of the enum
+                            value = null;
+                            return false;
+                        }
+                    }
+
                     return true;
                 }
             }
@@ -113,12 +120,9 @@ namespace Microsoft.VisualStudio.LanguageServices.Options
             return false;
         }
 
-        public bool TryPersist(OptionKey2 optionKey, string path, string key, object? value)
+        public void Persist(OptionKey2 optionKey, string path, string key, object? value)
         {
-            if (_registryKey == null)
-            {
-                throw new InvalidOperationException();
-            }
+            Contract.ThrowIfNull(_registryKey);
 
             lock (_gate)
             {
@@ -131,7 +135,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Options
                 {
                     Contract.ThrowIfNull(value);
                     subKey.SetValue(key, (bool)value ? 1 : 0, RegistryValueKind.DWord);
-                    return true;
+                    return;
                 }
 
                 if (optionType == typeof(long))
@@ -139,7 +143,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Options
                     Contract.ThrowIfNull(value);
 
                     subKey.SetValue(key, value, RegistryValueKind.QWord);
-                    return true;
+                    return;
                 }
 
                 if (optionType.IsEnum)
@@ -156,11 +160,10 @@ namespace Microsoft.VisualStudio.LanguageServices.Options
                         subKey.SetValue(key, (int)value, RegistryValueKind.DWord);
                     }
 
-                    return true;
+                    return;
                 }
 
                 subKey.SetValue(key, value);
-                return true;
             }
         }
     }

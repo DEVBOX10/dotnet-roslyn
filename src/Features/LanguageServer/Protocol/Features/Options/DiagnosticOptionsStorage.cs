@@ -8,12 +8,13 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 {
     internal sealed class DiagnosticOptionsStorage
     {
-        private const string FeatureName = "DiagnosticOptions";
-
         public static readonly Option2<bool> LspPullDiagnosticsFeatureFlag = new(
-            FeatureName, "LspPullDiagnosticsFeatureFlag", defaultValue: false);
+            "dotnet_enable_lsp_pull_diagnostics", defaultValue: false);
 
         public static readonly Option2<bool> LogTelemetryForBackgroundAnalyzerExecution = new(
-            FeatureName, "LogTelemetryForBackgroundAnalyzerExecution", defaultValue: false);
+            "dotnet_log_telemetry_for_background_analyzer_execution", defaultValue: false);
+
+        public static readonly Option2<bool> LightbulbSkipExecutingDeprioritizedAnalyzers = new(
+            "dotnet_lightbulb_skip_executing_deprioritized_analyzers", defaultValue: false);
     }
 }

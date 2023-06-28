@@ -63,8 +63,11 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             bool wasInExpressionLambda = _inExpressionLambda;
             _inExpressionLambda = _inExpressionLambda || (node.ConversionKind == ConversionKind.AnonymousFunction && !wasInExpressionLambda && rewrittenType.IsExpressionTree());
+            InstrumentationState.IsSuppressed = _inExpressionLambda;
+
             var rewrittenOperand = VisitExpression(node.Operand);
             _inExpressionLambda = wasInExpressionLambda;
+            InstrumentationState.IsSuppressed = _inExpressionLambda;
 
             var result = MakeConversionNode(node, node.Syntax, rewrittenOperand, node.Conversion, node.Checked, node.ExplicitCastInCode, node.ConstantValueOpt, rewrittenType);
 
@@ -296,6 +299,8 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             Debug.Assert(oldNodeOpt == null || oldNodeOpt.Syntax == syntax);
             Debug.Assert(rewrittenType is { });
+            Debug.Assert(_factory.ModuleBuilderOpt is { });
+            Debug.Assert(_diagnostics.DiagnosticBag is { });
 
             if (_inExpressionLambda && !conversion.IsUserDefined)
             {
@@ -458,7 +463,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                             constantValueOpt,
                             rewrittenType.GetNullableUnderlyingType());
 
-                        var outerConversion = new Conversion(ConversionKind.ImplicitNullable, Conversion.IdentityUnderlying);
+                        var outerConversion = Conversion.ImplicitNullableWithIdentityUnderlying;
                         outerConversion.MarkUnderlyingConversionsChecked();
                         return MakeConversionNode(
                             oldNodeOpt,
@@ -576,6 +581,29 @@ namespace Microsoft.CodeAnalysis.CSharp
                         {
                             return boundDelegateCreation;
                         }
+                    }
+
+                case ConversionKind.InlineArray:
+                    {
+                        Debug.Assert(rewrittenOperand.Type is not null);
+
+                        NamedTypeSymbol spanType = (NamedTypeSymbol)rewrittenType;
+                        MethodSymbol createSpan;
+
+                        if (spanType.OriginalDefinition.Equals(_compilation.GetWellKnownType(WellKnownType.System_ReadOnlySpan_T), TypeCompareKind.AllIgnoreOptions))
+                        {
+                            createSpan = _factory.ModuleBuilderOpt.EnsureInlineArrayAsReadOnlySpanExists(syntax, spanType.OriginalDefinition, _factory.SpecialType(SpecialType.System_Int32), _diagnostics.DiagnosticBag);
+                        }
+                        else
+                        {
+                            Debug.Assert(spanType.OriginalDefinition.Equals(_compilation.GetWellKnownType(WellKnownType.System_Span_T), TypeCompareKind.AllIgnoreOptions));
+                            createSpan = _factory.ModuleBuilderOpt.EnsureInlineArrayAsSpanExists(syntax, spanType.OriginalDefinition, _factory.SpecialType(SpecialType.System_Int32), _diagnostics.DiagnosticBag);
+                        }
+
+                        createSpan = createSpan.Construct(rewrittenOperand.Type, spanType.TypeArgumentsWithAnnotationsNoUseSiteDiagnostics.Single().Type);
+                        _ = rewrittenOperand.Type.HasInlineArrayAttribute(out int length);
+
+                        return _factory.Call(null, createSpan, rewrittenOperand, _factory.Literal(length), useStrictArgumentRefKinds: true);
                     }
 
                 default:

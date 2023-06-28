@@ -5301,6 +5301,8 @@ interface I1
 
             Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             Assert.True(compilation1.Assembly.RuntimeSupportsStaticAbstractMembersInInterfaces);
+            Assert.True(compilation1.SupportsRuntimeCapability(RuntimeCapability.DefaultImplementationsOfInterfaces));
+            Assert.True(compilation1.SupportsRuntimeCapability(RuntimeCapability.VirtualStaticsInInterfaces));
 
             CompileAndVerify(compilation1, sourceSymbolValidator: validate, symbolValidator: validate, verify: Verification.Skipped).VerifyDiagnostics();
 
@@ -5335,6 +5337,8 @@ interface I1
 
             Assert.True(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             Assert.True(compilation1.Assembly.RuntimeSupportsStaticAbstractMembersInInterfaces);
+            Assert.True(compilation1.SupportsRuntimeCapability(RuntimeCapability.DefaultImplementationsOfInterfaces));
+            Assert.True(compilation1.SupportsRuntimeCapability(RuntimeCapability.VirtualStaticsInInterfaces));
 
             CompileAndVerify(compilation1, sourceSymbolValidator: validate, symbolValidator: validate, verify: Verification.Skipped).VerifyDiagnostics();
 
@@ -5375,6 +5379,8 @@ interface I1
 
             Assert.False(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             Assert.False(compilation1.Assembly.RuntimeSupportsStaticAbstractMembersInInterfaces);
+            Assert.False(compilation1.SupportsRuntimeCapability(RuntimeCapability.DefaultImplementationsOfInterfaces));
+            Assert.False(compilation1.SupportsRuntimeCapability(RuntimeCapability.VirtualStaticsInInterfaces));
 
             var compilation2 = CreateCompilation(source1, options: TestOptions.DebugDll,
                                                  parseOptions: TestOptions.RegularPreview,
@@ -5388,6 +5394,8 @@ interface I1
 
             Assert.True(compilation2.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             Assert.False(compilation2.Assembly.RuntimeSupportsStaticAbstractMembersInInterfaces);
+            Assert.True(compilation2.SupportsRuntimeCapability(RuntimeCapability.DefaultImplementationsOfInterfaces));
+            Assert.False(compilation2.SupportsRuntimeCapability(RuntimeCapability.VirtualStaticsInInterfaces));
         }
 
         [Fact]
@@ -5412,6 +5420,8 @@ interface I1
 
             Assert.False(compilation1.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             Assert.False(compilation1.Assembly.RuntimeSupportsStaticAbstractMembersInInterfaces);
+            Assert.False(compilation1.SupportsRuntimeCapability(RuntimeCapability.DefaultImplementationsOfInterfaces));
+            Assert.False(compilation1.SupportsRuntimeCapability(RuntimeCapability.VirtualStaticsInInterfaces));
 
             var compilation2 = CreateCompilation(source1, options: TestOptions.DebugDll,
                                                  parseOptions: TestOptions.RegularPreview,
@@ -5425,6 +5435,8 @@ interface I1
 
             Assert.True(compilation2.Assembly.RuntimeSupportsDefaultInterfaceImplementation);
             Assert.False(compilation2.Assembly.RuntimeSupportsStaticAbstractMembersInInterfaces);
+            Assert.True(compilation2.SupportsRuntimeCapability(RuntimeCapability.DefaultImplementationsOfInterfaces));
+            Assert.False(compilation2.SupportsRuntimeCapability(RuntimeCapability.VirtualStaticsInInterfaces));
         }
 
         [Theory]
@@ -13090,18 +13102,6 @@ class Test
                                                  targetFramework: _supportingFramework);
 
             compilation1.VerifyDiagnostics(
-                // (14,20): error CS0176: Member 'I1.P01' cannot be accessed with an instance reference; qualify it with a type name instead
-                //         _ = nameof(this.P01);
-                Diagnostic(ErrorCode.ERR_ObjectProhibited, "this.P01").WithArguments("I1.P01").WithLocation(14, 20),
-                // (15,20): error CS0176: Member 'I1.P04' cannot be accessed with an instance reference; qualify it with a type name instead
-                //         _ = nameof(this.P04);
-                Diagnostic(ErrorCode.ERR_ObjectProhibited, "this.P04").WithArguments("I1.P04").WithLocation(15, 20),
-                // (28,20): error CS0176: Member 'I1.P01' cannot be accessed with an instance reference; qualify it with a type name instead
-                //         _ = nameof(x.P01);
-                Diagnostic(ErrorCode.ERR_ObjectProhibited, "x.P01").WithArguments("I1.P01").WithLocation(28, 20),
-                // (30,20): error CS0176: Member 'I1.P04' cannot be accessed with an instance reference; qualify it with a type name instead
-                //         _ = nameof(x.P04);
-                Diagnostic(ErrorCode.ERR_ObjectProhibited, "x.P04").WithArguments("I1.P04").WithLocation(30, 20),
                 // (35,20): error CS0704: Cannot do non-virtual member lookup in 'T' because it is a type parameter
                 //         _ = nameof(T.P03);
                 Diagnostic(ErrorCode.ERR_LookupInTypeVariable, "T").WithArguments("T").WithLocation(35, 20),
@@ -13972,18 +13972,6 @@ class Test
                                                  targetFramework: _supportingFramework);
 
             compilation1.VerifyDiagnostics(
-                // (14,20): error CS0176: Member 'I1.P01' cannot be accessed with an instance reference; qualify it with a type name instead
-                //         _ = nameof(this.P01);
-                Diagnostic(ErrorCode.ERR_ObjectProhibited, "this.P01").WithArguments("I1.P01").WithLocation(14, 20),
-                // (15,20): error CS0176: Member 'I1.P04' cannot be accessed with an instance reference; qualify it with a type name instead
-                //         _ = nameof(this.P04);
-                Diagnostic(ErrorCode.ERR_ObjectProhibited, "this.P04").WithArguments("I1.P04").WithLocation(15, 20),
-                // (28,20): error CS0176: Member 'I1.P01' cannot be accessed with an instance reference; qualify it with a type name instead
-                //         _ = nameof(x.P01);
-                Diagnostic(ErrorCode.ERR_ObjectProhibited, "x.P01").WithArguments("I1.P01").WithLocation(28, 20),
-                // (30,20): error CS0176: Member 'I1.P04' cannot be accessed with an instance reference; qualify it with a type name instead
-                //         _ = nameof(x.P04);
-                Diagnostic(ErrorCode.ERR_ObjectProhibited, "x.P04").WithArguments("I1.P04").WithLocation(30, 20),
                 // (35,20): error CS0704: Cannot do non-virtual member lookup in 'T' because it is a type parameter
                 //         _ = nameof(T.P03);
                 Diagnostic(ErrorCode.ERR_LookupInTypeVariable, "T").WithArguments("T").WithLocation(35, 20),
@@ -33430,6 +33418,130 @@ public class C5 : I1<C5>
                     // (80,45): error CS0557: Duplicate user-defined conversion in type 'C23_2'
                     //     public static explicit operator checked int(C23_2 t) => 1;
                     Diagnostic(ErrorCode.ERR_DuplicateConversionInClass, "int").WithArguments("C23_2").WithLocation(80, 45)
+                );
+        }
+
+        [Fact]
+        [WorkItem(66516, "https://github.com/dotnet/roslyn/issues/66516")]
+        public void AbstractEntryPoint()
+        {
+            CreateCompilation("""
+                interface IProgram
+                {
+                    static abstract void Main();
+                }
+                """, options: TestOptions.DebugExe, parseOptions: TestOptions.RegularPreview, targetFramework: _supportingFramework).VerifyDiagnostics(
+                    // error CS5001: Program does not contain a static 'Main' method suitable for an entry point
+                    Diagnostic(ErrorCode.ERR_NoEntryPoint).WithLocation(1, 1)
+                );
+        }
+
+        [Fact]
+        [WorkItem(66516, "https://github.com/dotnet/roslyn/issues/66516")]
+        public void VirtualEntryPoint()
+        {
+            CreateCompilation("""
+                using System;
+
+                interface IProgram
+                {
+                    static virtual void Main() => Console.WriteLine("Hello World!, from IProgram");
+                }
+                """, options: TestOptions.DebugExe, parseOptions: TestOptions.RegularPreview, targetFramework: _supportingFramework).VerifyDiagnostics(
+                    // error CS5001: Program does not contain a static 'Main' method suitable for an entry point
+                    Diagnostic(ErrorCode.ERR_NoEntryPoint).WithLocation(1, 1)
+                );
+        }
+
+        [Fact]
+        [WorkItem(66516, "https://github.com/dotnet/roslyn/issues/66516")]
+        public void AbstractEntryPointWithImplementation()
+        {
+            CompileAndVerify("""
+                using System;
+
+                interface IProgram
+                {
+                    static abstract void Main();
+                }
+
+                class Program : IProgram
+                {
+                    public static void Main() => Console.WriteLine("Hello World!");
+                }
+                """,
+                expectedOutput: Execute(false) ? "Hello World!" : null,
+                options: TestOptions.DebugExe,
+                parseOptions: TestOptions.RegularPreview,
+                targetFramework: _supportingFramework,
+                verify: Verification.Skipped);
+        }
+
+        [Fact]
+        [WorkItem(66516, "https://github.com/dotnet/roslyn/issues/66516")]
+        public void AbstractEntryPointWithExplicitImplementation()
+        {
+            CreateCompilation("""
+                using System;
+
+                interface IProgram
+                {
+                    static abstract void Main();
+                }
+
+                class Program : IProgram
+                {
+                    static void IProgram.Main() => Console.WriteLine("Hello World!");
+                }
+                """, options: TestOptions.DebugExe, parseOptions: TestOptions.RegularPreview, targetFramework: _supportingFramework).VerifyDiagnostics(
+                    // error CS5001: Program does not contain a static 'Main' method suitable for an entry point
+                    Diagnostic(ErrorCode.ERR_NoEntryPoint).WithLocation(1, 1)
+                );
+        }
+
+        [Fact]
+        [WorkItem(66516, "https://github.com/dotnet/roslyn/issues/66516")]
+        public void VirtualEntryPointWithImplementation()
+        {
+            CompileAndVerify("""
+                using System;
+
+                interface IProgram
+                {
+                    static virtual void Main() => Console.WriteLine("Hello World!, from IProgram");
+                }
+
+                class Program : IProgram
+                {
+                    public static void Main() => Console.WriteLine("Hello World!");
+                }
+                """,
+                expectedOutput: Execute(false) ? "Hello World!" : null,
+                options: TestOptions.DebugExe,
+                parseOptions: TestOptions.RegularPreview,
+                targetFramework: _supportingFramework,
+                verify: Verification.Skipped);
+        }
+
+        [Fact]
+        [WorkItem(66516, "https://github.com/dotnet/roslyn/issues/66516")]
+        public void VirtualEntryPointWithExplicitImplementation()
+        {
+            CreateCompilation("""
+                using System;
+
+                interface IProgram
+                {
+                    static virtual void Main() => Console.WriteLine("Hello World!, from IProgram");
+                }
+
+                class Program : IProgram
+                {
+                    static void IProgram.Main() => Console.WriteLine("Hello World!");
+                }
+                """, options: TestOptions.DebugExe, parseOptions: TestOptions.RegularPreview, targetFramework: _supportingFramework).VerifyDiagnostics(
+                    // error CS5001: Program does not contain a static 'Main' method suitable for an entry point
+                    Diagnostic(ErrorCode.ERR_NoEntryPoint).WithLocation(1, 1)
                 );
         }
     }

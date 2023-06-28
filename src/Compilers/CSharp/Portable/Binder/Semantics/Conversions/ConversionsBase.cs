@@ -73,6 +73,10 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         protected abstract Conversion GetInterpolatedStringConversion(BoundExpression source, TypeSymbol destination, ref CompoundUseSiteInfo<AssemblySymbol> useSiteInfo);
 
+        protected abstract bool IsAttributeArgumentBinding { get; }
+
+        protected abstract bool IsParameterDefaultValueBinding { get; }
+
         internal AssemblySymbol CorLibrary { get { return corLibrary; } }
 
 #nullable enable
@@ -591,6 +595,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 case ConversionKind.ImplicitTupleLiteral:
                 case ConversionKind.StackAllocToPointerType:
                 case ConversionKind.StackAllocToSpanType:
+                case ConversionKind.InlineArray:
                     return true;
                 default:
                     return false;
@@ -1096,6 +1101,17 @@ namespace Microsoft.CodeAnalysis.CSharp
                     return Conversion.ObjectCreation;
             }
 
+            // Neither Span<T>, nor ReadOnlySpan<T> can be wrapped into a Nullable<T>, therefore, there is no point to check for an attempt to convert to Nullable types here. 
+            if (!IsAttributeArgumentBinding && !IsParameterDefaultValueBinding && // These checks prevent cycles caused by attribute binding when HasInlineArrayAttribute check triggers that.
+                source?.HasInlineArrayAttribute(out _) == true &&
+                source.TryGetInlineArrayElementField() is { TypeWithAnnotations: var elementType } &&
+                (destination.OriginalDefinition.Equals(Compilation.GetWellKnownType(WellKnownType.System_Span_T), TypeCompareKind.AllIgnoreOptions) ||
+                 destination.OriginalDefinition.Equals(Compilation.GetWellKnownType(WellKnownType.System_ReadOnlySpan_T), TypeCompareKind.AllIgnoreOptions)) &&
+                HasIdentityConversionInternal(((NamedTypeSymbol)destination.OriginalDefinition).Construct(ImmutableArray.Create(elementType)), destination))
+            {
+                return Conversion.InlineArray;
+            }
+
             return Conversion.NoConversion;
         }
 
@@ -1202,7 +1218,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 if (nt.OriginalDefinition.GetSpecialTypeSafe() == SpecialType.System_Nullable_T &&
                     HasImplicitConstantExpressionConversion(source, nt.TypeArgumentsWithAnnotationsNoUseSiteDiagnostics[0].Type))
                 {
-                    return new Conversion(ConversionKind.ImplicitNullable, Conversion.ImplicitConstantUnderlying);
+                    return Conversion.ImplicitNullableWithImplicitConstantUnderlying;
                 }
             }
 
@@ -2112,12 +2128,12 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             if (HasIdentityConversionInternal(unwrappedSource, unwrappedDestination))
             {
-                return new Conversion(ConversionKind.ImplicitNullable, Conversion.IdentityUnderlying);
+                return Conversion.ImplicitNullableWithIdentityUnderlying;
             }
 
             if (HasImplicitNumericConversion(unwrappedSource, unwrappedDestination))
             {
-                return new Conversion(ConversionKind.ImplicitNullable, Conversion.ImplicitNumericUnderlying);
+                return Conversion.ImplicitNullableWithImplicitNumericUnderlying;
             }
 
             var tupleConversion = ClassifyImplicitTupleConversion(unwrappedSource, unwrappedDestination, ref useSiteInfo);
@@ -2304,17 +2320,17 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             if (HasIdentityConversionInternal(unwrappedSource, unwrappedDestination))
             {
-                return new Conversion(ConversionKind.ExplicitNullable, Conversion.IdentityUnderlying);
+                return Conversion.ExplicitNullableWithIdentityUnderlying;
             }
 
             if (HasImplicitNumericConversion(unwrappedSource, unwrappedDestination))
             {
-                return new Conversion(ConversionKind.ExplicitNullable, Conversion.ImplicitNumericUnderlying);
+                return Conversion.ExplicitNullableWithImplicitNumericUnderlying;
             }
 
             if (HasExplicitNumericConversion(unwrappedSource, unwrappedDestination))
             {
-                return new Conversion(ConversionKind.ExplicitNullable, Conversion.ExplicitNumericUnderlying);
+                return Conversion.ExplicitNullableWithExplicitNumericUnderlying;
             }
 
             var tupleConversion = ClassifyExplicitTupleConversion(unwrappedSource, unwrappedDestination, isChecked: isChecked, ref useSiteInfo, forCast);
@@ -2325,12 +2341,12 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             if (HasExplicitEnumerationConversion(unwrappedSource, unwrappedDestination))
             {
-                return new Conversion(ConversionKind.ExplicitNullable, Conversion.ExplicitEnumerationUnderlying);
+                return Conversion.ExplicitNullableWithExplicitEnumerationUnderlying;
             }
 
             if (HasPointerToIntegerConversion(unwrappedSource, unwrappedDestination))
             {
-                return new Conversion(ConversionKind.ExplicitNullable, Conversion.PointerToIntegerUnderlying);
+                return Conversion.ExplicitNullableWithPointerToIntegerUnderlying;
             }
 
             return Conversion.NoConversion;

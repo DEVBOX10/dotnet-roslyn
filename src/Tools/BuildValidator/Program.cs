@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.CommandLine;
-using System.CommandLine.Invocation;
+using System.CommandLine.NamingConventionBinder;
 using System.IO;
 using System.Linq;
 using System.Reflection.PortableExecutable;
@@ -33,18 +33,18 @@ namespace BuildValidator
             System.Diagnostics.Trace.Listeners.Clear();
             var rootCommand = new RootCommand
             {
-                new Option<string>(
+                new Option<string[]>(
                     "--assembliesPath", BuildValidatorResources.Path_to_assemblies_to_rebuild_can_be_specified_one_or_more_times
-                ) { IsRequired = true, Argument = { Arity = ArgumentArity.OneOrMore } },
-                new Option<string>(
+                ) { IsRequired = true, Arity = ArgumentArity.OneOrMore },
+                new Option<string[]>(
                     "--exclude", BuildValidatorResources.Assemblies_to_be_excluded_substring_match
-                ) { Argument = { Arity = ArgumentArity.ZeroOrMore } },
+                ) { Arity = ArgumentArity.ZeroOrMore },
                 new Option<string>(
                     "--sourcePath", BuildValidatorResources.Path_to_sources_to_use_in_rebuild
                 ) { IsRequired = true },
-                new Option<string>(
+                new Option<string[]>(
                     "--referencesPath", BuildValidatorResources.Path_to_referenced_assemblies_can_be_specified_zero_or_more_times
-                ) { Argument = { Arity = ArgumentArity.ZeroOrMore } },
+                ) { Arity = ArgumentArity.ZeroOrMore },
                 new Option<bool>(
                     "--verbose", BuildValidatorResources.Output_verbose_log_information
                 ),
@@ -71,8 +71,6 @@ namespace BuildValidator
 
             var excludes = new List<string>(exclude ?? Array.Empty<string>());
             excludes.Add(Path.DirectorySeparatorChar + "runtimes" + Path.DirectorySeparatorChar);
-            excludes.Add(Path.DirectorySeparatorChar + "ref" + Path.DirectorySeparatorChar);
-            excludes.Add(Path.DirectorySeparatorChar + "refint" + Path.DirectorySeparatorChar);
             excludes.Add(@".resources.dll");
 
             var options = new Options(assembliesPath, referencesPath, excludes.ToArray(), sourcePath, verbose, quiet, debug, debugPath);
@@ -159,13 +157,19 @@ namespace BuildValidator
 
                     if (Util.GetPortableExecutableInfo(filePath) is not { } peInfo)
                     {
-                        logger.LogError($"Skipping non-pe file {filePath}");
+                        logger.LogInformation($"Skipping non-pe file {filePath}");
                         continue;
                     }
 
                     if (peInfo.IsReadyToRun)
                     {
-                        logger.LogError($"Skipping ReadyToRun file {filePath}");
+                        logger.LogInformation($"Skipping ReadyToRun file {filePath}");
+                        continue;
+                    }
+
+                    if (peInfo.IsReferenceAssembly)
+                    {
+                        logger.LogInformation($"Skipping reference assembly {filePath}");
                         continue;
                     }
 
@@ -195,7 +199,7 @@ namespace BuildValidator
         private static bool ValidateFiles(IEnumerable<AssemblyInfo> assemblyInfos, Options options, ILoggerFactory loggerFactory)
         {
             var logger = loggerFactory.CreateLogger<Program>();
-            var referenceResolver = new LocalReferenceResolver(options, loggerFactory);
+            var referenceResolver = LocalReferenceResolver.Create(options, loggerFactory);
 
             var assembliesCompiled = new List<CompilationDiff>();
             foreach (var assemblyInfo in assemblyInfos)
@@ -315,6 +319,7 @@ namespace BuildValidator
             }
             catch (Exception ex)
             {
+                logger.LogError(ex.Message);
                 return CompilationDiff.CreateMiscError(assemblyInfo, ex.Message);
             }
         }

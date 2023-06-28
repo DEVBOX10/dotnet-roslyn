@@ -95,11 +95,11 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             if (isUsingDeclaration)
             {
-                CheckFeatureAvailability(syntax, MessageID.IDS_FeatureUsingDeclarations, diagnostics, usingKeyword.GetLocation());
+                CheckFeatureAvailability(usingKeyword, MessageID.IDS_FeatureUsingDeclarations, diagnostics);
             }
             else if (hasAwait)
             {
-                CheckFeatureAvailability(syntax, MessageID.IDS_FeatureAsyncUsing, diagnostics, awaitKeyword.GetLocation());
+                CheckFeatureAvailability(awaitKeyword, MessageID.IDS_FeatureAsyncUsing, diagnostics);
             }
 
             Debug.Assert(isUsingDeclaration || usingBinderOpt != null);
@@ -116,6 +116,11 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 expressionOpt = usingBinderOpt!.BindTargetExpression(diagnostics, originalBinder);
                 hasErrors |= !bindDisposable(fromExpression: true, out patternDisposeInfo, out awaitableTypeOpt);
+                Debug.Assert(expressionOpt is not null);
+                if (expressionOpt.Type is not null)
+                {
+                    CheckRestrictedTypeInAsyncMethod(originalBinder.ContainingMemberOrLambda, expressionOpt.Type, diagnostics, expressionOpt.Syntax, forUsingExpression: true);
+                }
             }
             else
             {

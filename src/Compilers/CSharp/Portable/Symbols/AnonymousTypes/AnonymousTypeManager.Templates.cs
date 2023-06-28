@@ -95,7 +95,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         private void CheckSourceLocationSeen(AnonymousTypePublicSymbol anonymous)
         {
 #if DEBUG
-            Location location = anonymous.Locations[0];
+            Location location = anonymous.GetFirstLocation();
             if (location.IsInSource)
             {
                 if (this.AreTemplatesSealed)
@@ -309,6 +309,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             static bool hasDefaultScope(bool useUpdatedEscapeRules, AnonymousTypeField field)
             {
+                if (field.HasUnscopedRefAttribute)
+                {
+                    return false;
+                }
                 return (field.Scope, ParameterHelpers.IsRefScopedByDefault(useUpdatedEscapeRules, field.RefKind)) switch
                 {
                     (ScopedKind.None, false) => true,

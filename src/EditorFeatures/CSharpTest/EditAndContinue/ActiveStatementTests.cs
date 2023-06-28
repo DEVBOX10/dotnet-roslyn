@@ -7,7 +7,7 @@
 using System;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.EditAndContinue;
-using Microsoft.CodeAnalysis.EditAndContinue.Contracts;
+using Microsoft.CodeAnalysis.Contracts.EditAndContinue;
 using Microsoft.CodeAnalysis.EditAndContinue.UnitTests;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
@@ -268,7 +268,7 @@ class C
                 });
         }
 
-        [Fact, WorkItem(846588, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/846588")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/846588")]
         public void Update_Leaf_Block()
         {
             var src1 = @"
@@ -689,7 +689,7 @@ class C
                 Diagnostic(RudeEditKind.DeleteActiveStatement, "{", FeaturesResources.code));
         }
 
-        [Fact, WorkItem(755959, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755959")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755959")]
         public void Delete_Leaf_CommentActiveStatement()
         {
             var src1 = @"
@@ -752,7 +752,7 @@ namespace N
 
         #region Constructors
 
-        [Fact, WorkItem(740949, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/740949")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/740949")]
         public void Updated_Inner_Constructor()
         {
             var src1 = @"
@@ -800,7 +800,7 @@ class Goo
                 Diagnostic(RudeEditKind.ActiveStatementUpdate, "Goo f = new Goo(5*2);"));
         }
 
-        [Fact, WorkItem(741249, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/741249")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/741249")]
         public void Updated_Leaf_Constructor()
         {
             var src1 = @"
@@ -847,7 +847,7 @@ class Goo
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(742334, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/742334")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/742334")]
         public void Updated_Leaf_Constructor_Parameter()
         {
             var src1 = @"
@@ -900,7 +900,7 @@ class Goo
                 capabilities: EditAndContinueTestHelpers.Net6RuntimeCapabilities);
         }
 
-        [Fact, WorkItem(742334, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/742334")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/742334")]
         public void Updated_Leaf_Constructor_Parameter_DefaultValue()
         {
             var src1 = @"
@@ -948,7 +948,7 @@ class Goo
                 Diagnostic(RudeEditKind.InitializerUpdate, "int a = 42", FeaturesResources.parameter));
         }
 
-        [Fact, WorkItem(742334, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/742334")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/742334")]
         public void Updated_Leaf_ConstructorChaining1()
         {
             var src1 = @"
@@ -997,7 +997,7 @@ class A
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(742334, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/742334")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/742334")]
         public void Updated_Leaf_ConstructorChaining2()
         {
             var src1 = @"
@@ -1046,7 +1046,7 @@ class A
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(742334, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/742334")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/742334")]
         public void InstanceConstructorWithoutInitializer()
         {
             var src1 = @"
@@ -1480,7 +1480,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Theory, WorkItem(742334, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/742334")]
+        [Theory, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/742334")]
         [InlineData("class ")]
         [InlineData("struct")]
         public void InstanceFieldInitializer_Leaf_Update1(string typeKind)
@@ -2480,7 +2480,7 @@ class Test
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(755749, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755749")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755749")]
         public void Lock_Insert_Leaf()
         {
             var src1 = @"
@@ -2511,7 +2511,7 @@ class Test
                 Diagnostic(RudeEditKind.InsertAroundActiveStatement, "lock (lockThis)", CSharpFeaturesResources.lock_statement));
         }
 
-        [Fact, WorkItem(755749, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755749")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755749")]
         public void Lock_Insert_Leaf2()
         {
             var src1 = @"
@@ -2698,7 +2698,7 @@ class Test
                 Diagnostic(RudeEditKind.UpdateAroundActiveStatement, "lock (d)", CSharpFeaturesResources.lock_statement));
         }
 
-        [Fact, WorkItem(755752, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755752")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755752")]
         public void Lock_Update_Leaf()
         {
             var src1 = @"
@@ -2911,7 +2911,7 @@ class Test
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(755742, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755742")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755742")]
         public void Fixed_Insert_Leaf()
         {
             var src1 = @"
@@ -2987,7 +2987,7 @@ class Test
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(755742, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755742")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755742")]
         public void Fixed_Insert_Leaf3()
         {
             var src1 = @"
@@ -3031,7 +3031,7 @@ class Test
                 Diagnostic(RudeEditKind.InsertAroundActiveStatement, "fixed (int* pj = &value)", CSharpFeaturesResources.fixed_statement));
         }
 
-        [Fact, WorkItem(755742, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755742")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755742")]
         public void Fixed_Reorder_Leaf1()
         {
             var src1 = @"
@@ -3078,7 +3078,7 @@ class Test
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(755746, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755746")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755746")]
         public void Fixed_Update_Leaf1()
         {
             var src1 = @"
@@ -3120,7 +3120,7 @@ class Test
                 Diagnostic(RudeEditKind.UpdateAroundActiveStatement, "fixed (int* p = &value)", CSharpFeaturesResources.fixed_statement));
         }
 
-        [Fact, WorkItem(755746, "http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755746")]
+        [Fact, WorkItem("http://vstfdevdiv:8080/DevDiv2/DevDiv/_workitems/edit/755746")]
         public void Fixed_Update_Leaf2()
         {
             var src1 = @"
@@ -4222,6 +4222,210 @@ class C
 
             edits.VerifySemanticDiagnostics(active,
                 Diagnostic(RudeEditKind.UpdateAroundActiveStatement, "foreach (var a in G(a => a))", CSharpFeaturesResources.foreach_statement));
+        }
+
+        [Fact]
+        public void ForEach_Update_Collection_01()
+        {
+            var src1 = @"
+class C
+{
+    static void Main()
+    {
+        var aa = new int[4];
+        var bb = new int[4];
+        
+        foreach (var a in aa)
+        {
+            <AS:0>Console.WriteLine(1);</AS:0>
+        }
+    }
+}
+";
+            var src2 = @"
+class C
+{
+    static void Main()
+    {
+        var aa = new int[4];
+        var bb = new int[4];
+        
+        foreach (var a in bb)
+        {
+            <AS:0>Console.WriteLine(1);</AS:0>
+        }
+    }
+}
+";
+            var edits = GetTopEdits(src1, src2);
+            var active = GetActiveStatements(src1, src2);
+
+            edits.VerifySemanticDiagnostics(active,
+                Diagnostic(RudeEditKind.UpdateAroundActiveStatement, "foreach (var a in bb)", CSharpFeaturesResources.foreach_statement));
+        }
+
+        [Fact]
+        public void ForEach_Update_Collection_02()
+        {
+            var src1 = @"
+class C
+{
+    static void Main()
+    {
+        Buffer4 aa = default;
+        Buffer4 bb = default;
+        
+        foreach (var a in aa)
+        {
+            <AS:0>Console.WriteLine(1);</AS:0>
+        }
+    }
+}
+
+[System.Runtime.CompilerServices.InlineArray(4)]
+struct Buffer4
+{
+    private int _f;
+}
+";
+            var src2 = @"
+class C
+{
+    static void Main()
+    {
+        Buffer4 aa = default;
+        Buffer4 bb = default;
+        
+        foreach (var a in bb)
+        {
+            <AS:0>Console.WriteLine(1);</AS:0>
+        }
+    }
+}
+
+[System.Runtime.CompilerServices.InlineArray(4)]
+struct Buffer4
+{
+    private int _f;
+}
+";
+            var edits = GetTopEdits(src1, src2);
+            var active = GetActiveStatements(src1, src2);
+
+            edits.VerifySemanticDiagnostics(active,
+                Diagnostic(RudeEditKind.UpdateAroundActiveStatement, "foreach (var a in bb)", CSharpFeaturesResources.foreach_statement));
+        }
+
+        [Fact]
+        public void ForEach_Update_Collection_03()
+        {
+            var src1 = @"
+class C
+{
+    public readonly Buffer4 F = default;
+}
+
+class Program
+{
+    static System.Collections.Generic.IEnumerable<int> Test(C x, C z)
+    {
+        foreach (var y in x.F)
+        {
+            <AS:0>Console.WriteLine(1);</AS:0>
+            yield return -1;
+        }
+    }
+}
+
+[System.Runtime.CompilerServices.InlineArray(4)]
+struct Buffer4
+{
+    private int _f;
+}
+";
+            var src2 = @"
+class C
+{
+    public readonly Buffer4 F = default;
+}
+
+class Program
+{
+    static System.Collections.Generic.IEnumerable<int> Test(C x, C z)
+    {
+        foreach (var y in z.F)
+        {
+            <AS:0>Console.WriteLine(1);</AS:0>
+            yield return -1;
+        }
+    }
+}
+
+[System.Runtime.CompilerServices.InlineArray(4)]
+struct Buffer4
+{
+    private int _f;
+}
+";
+            var edits = GetTopEdits(src1, src2);
+            var active = GetActiveStatements(src1, src2);
+
+            edits.VerifySemanticDiagnostics(active,
+                Diagnostic(RudeEditKind.UpdateAroundActiveStatement, "foreach (var y in z.F)", CSharpFeaturesResources.foreach_statement));
+        }
+
+        [Fact]
+        public void ForEach_Update_Collection_04()
+        {
+            var src1 = @"
+class Program
+{
+    static System.Collections.Generic.IEnumerable<int> Test()
+    {
+        foreach (var y in GetBuffer1())
+        {
+            <AS:0>Console.WriteLine(1);</AS:0>
+            yield return -1;
+        }
+    }
+
+    static Buffer4 GetBuffer1() => default;
+    static Buffer4 GetBuffer2() => default;
+}
+
+[System.Runtime.CompilerServices.InlineArray(4)]
+struct Buffer4
+{
+    private int _f;
+}
+";
+            var src2 = @"
+class Program
+{
+    static System.Collections.Generic.IEnumerable<int> Test()
+    {
+        foreach (var y in GetBuffer2())
+        {
+            <AS:0>Console.WriteLine(1);</AS:0>
+            yield return -1;
+        }
+    }
+
+    static Buffer4 GetBuffer1() => default;
+    static Buffer4 GetBuffer2() => default;
+}
+
+[System.Runtime.CompilerServices.InlineArray(4)]
+struct Buffer4
+{
+    private int _f;
+}
+";
+            var edits = GetTopEdits(src1, src2);
+            var active = GetActiveStatements(src1, src2);
+
+            edits.VerifySemanticDiagnostics(active,
+                Diagnostic(RudeEditKind.UpdateAroundActiveStatement, "foreach (var y in GetBuffer2())", CSharpFeaturesResources.foreach_statement));
         }
 
         [Fact]
@@ -6284,7 +6488,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(43099, "https://github.com/dotnet/roslyn/issues/43099")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/43099")]
         public void SwitchExpression_MemberExpressionBody()
         {
             var src1 = @"
@@ -6303,7 +6507,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(43099, "https://github.com/dotnet/roslyn/issues/43099")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/43099")]
         public void SwitchExpression_LambdaBody()
         {
             var src1 = @"
@@ -6322,7 +6526,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(43099, "https://github.com/dotnet/roslyn/issues/43099")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/43099")]
         public void SwitchExpression_QueryLambdaBody()
         {
             var src1 = @"
@@ -6353,7 +6557,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(43099, "https://github.com/dotnet/roslyn/issues/43099")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/43099")]
         public void SwitchExpression_NestedInGoverningExpression()
         {
             var src1 = @"
@@ -6373,7 +6577,7 @@ class C
                 Diagnostic(RudeEditKind.ActiveStatementUpdate, "(G() switch { 0 => 10, _ => 20 }) switch { 10 =>       100       , _ => 200 }"));
         }
 
-        [Fact, WorkItem(43099, "https://github.com/dotnet/roslyn/issues/43099")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/43099")]
         public void SwitchExpression_NestedInArm()
         {
             var src1 = @"
@@ -6400,7 +6604,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(43099, "https://github.com/dotnet/roslyn/issues/43099")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/43099")]
         public void SwitchExpression_Delete1()
         {
             var src1 = @"
@@ -6425,7 +6629,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(43099, "https://github.com/dotnet/roslyn/issues/43099")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/43099")]
         public void SwitchExpression_Delete2()
         {
             var src1 = @"
@@ -6450,7 +6654,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(43099, "https://github.com/dotnet/roslyn/issues/43099")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/43099")]
         public void SwitchExpression_Delete3()
         {
             var src1 = @"
@@ -7712,7 +7916,7 @@ class C
                 Diagnostic(RudeEditKind.InsertAroundActiveStatement, "finally", CSharpFeaturesResources.finally_clause));
         }
 
-        [Fact, WorkItem(23865, "https://github.com/dotnet/roslyn/issues/23865")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/23865")]
         public void TryCatchFinally_Regions()
         {
             var src1 = @"
@@ -7779,7 +7983,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(23865, "https://github.com/dotnet/roslyn/issues/23865")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/23865")]
         public void TryCatchFinally2_Regions()
         {
             var src1 = @"
@@ -8383,7 +8587,7 @@ class Test
 
         #region Lambdas
 
-        [Fact, WorkItem(1359, "https://github.com/dotnet/roslyn/issues/1359")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/1359")]
         public void Lambdas_LeafEdits_GeneralStatement()
         {
             var src1 = @"
@@ -8410,7 +8614,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(1359, "https://github.com/dotnet/roslyn/issues/1359")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/1359")]
         public void Lambdas_LeafEdits_Nested1()
         {
             var src1 = @"
@@ -8437,7 +8641,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(1359, "https://github.com/dotnet/roslyn/issues/1359")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/1359")]
         public void Lambdas_LeafEdits_Nested2()
         {
             var src1 = @"
@@ -8465,7 +8669,7 @@ class C
                 Diagnostic(RudeEditKind.ActiveStatementUpdate, "G(a =>       2       )"));
         }
 
-        [Fact, WorkItem(1359, "https://github.com/dotnet/roslyn/issues/1359")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/1359")]
         public void Lambdas_LeafEdits_IfStatement()
         {
             var src1 = @"
@@ -8492,7 +8696,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(1359, "https://github.com/dotnet/roslyn/issues/1359")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/1359")]
         public void Lambdas_LeafEdits_WhileStatement()
         {
             var src1 = @"
@@ -8519,7 +8723,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(1359, "https://github.com/dotnet/roslyn/issues/1359")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/1359")]
         public void Lambdas_LeafEdits_DoStatement()
         {
             var src1 = @"
@@ -8546,7 +8750,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(1359, "https://github.com/dotnet/roslyn/issues/1359")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/1359")]
         public void Lambdas_LeafEdits_SwitchStatement()
         {
             var src1 = @"
@@ -8581,7 +8785,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(1359, "https://github.com/dotnet/roslyn/issues/1359")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/1359")]
         public void Lambdas_LeafEdits_LockStatement()
         {
             var src1 = @"
@@ -8608,7 +8812,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(1359, "https://github.com/dotnet/roslyn/issues/1359")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/1359")]
         public void Lambdas_LeafEdits_UsingStatement1()
         {
             var src1 = @"
@@ -8691,7 +8895,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(61415, "https://github.com/dotnet/roslyn/issues/61415")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/61415")]
         public void Lambdas_EditAroundTry_WithActiveStatement()
         {
             var src1 =
@@ -9810,7 +10014,8 @@ class C
             var edits = GetTopEdits(src1, src2);
             var active = GetActiveStatements(src1, src2);
 
-            edits.VerifySemanticDiagnostics(active);
+            edits.VerifySemanticDiagnostics(active,
+                capabilities: EditAndContinueCapabilities.NewTypeDefinition);
         }
 
         [Fact]
@@ -9915,7 +10120,7 @@ class C
                 Diagnostic(RudeEditKind.UpdatingStateMachineMethodAroundActiveStatement, "a"));
         }
 
-        [Fact, WorkItem(37054, "https://github.com/dotnet/roslyn/issues/37054")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/37054")]
         public void LocalFunctionToAsyncLocalFunction_BlockBody_WithActiveStatement()
         {
             var src1 = @"
@@ -9951,7 +10156,7 @@ class C
                 Diagnostic(RudeEditKind.UpdatingStateMachineMethodAroundActiveStatement, "f"));
         }
 
-        [Fact, WorkItem(61415, "https://github.com/dotnet/roslyn/issues/61415")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/61415")]
         public void LocalFunction_EditAroundTry_WithActiveStatement()
         {
             var src1 =
@@ -10000,7 +10205,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(37054, "https://github.com/dotnet/roslyn/issues/37054")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/37054")]
         public void LocalFunctionToAsyncLocalFunction_ExpressionBody_WithActiveStatement()
         {
             var src1 = @"
@@ -10104,7 +10309,8 @@ class C
             var edits = GetTopEdits(src1, src2);
             _ = GetActiveStatements(src1, src2);
 
-            edits.VerifySemanticDiagnostics();
+            edits.VerifySemanticDiagnostics(
+                capabilities: EditAndContinueCapabilities.AddInstanceFieldToExistingType);
         }
 
         [Fact]
@@ -10139,7 +10345,8 @@ class C
             var edits = GetTopEdits(src1, src2);
             _ = GetActiveStatements(src1, src2);
 
-            edits.VerifySemanticDiagnostics();
+            edits.VerifySemanticDiagnostics(
+                capabilities: EditAndContinueCapabilities.AddInstanceFieldToExistingType);
         }
 
         [Fact]
@@ -10178,7 +10385,9 @@ class C
             var edits = GetTopEdits(src1, src2);
             _ = GetActiveStatements(src1, src2);
 
-            edits.VerifySemanticDiagnostics(targetFrameworks: new[] { TargetFramework.NetCoreApp });
+            edits.VerifySemanticDiagnostics(
+                targetFrameworks: new[] { TargetFramework.NetCoreApp },
+                capabilities: EditAndContinueCapabilities.AddInstanceFieldToExistingType);
         }
 
         [Fact]
@@ -10762,8 +10971,8 @@ class C
                 });
         }
 
-        [Fact, WorkItem(51177, "https://github.com/dotnet/roslyn/issues/51177")]
-        [WorkItem(54758, "https://github.com/dotnet/roslyn/issues/54758")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/51177")]
+        [WorkItem("https://github.com/dotnet/roslyn/issues/54758")]
         public void InsertDeleteMethod_Active()
         {
             // Moving active method declaration in a file with active statements.
@@ -11005,7 +11214,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact, WorkItem(52971, "https://github.com/dotnet/roslyn/issues/52971")]
+        [Fact, WorkItem("https://github.com/dotnet/roslyn/issues/52971")]
         public void LineMapping_ExceptionRegions_ChangeFilePath()
         {
             var src1 = @"
@@ -11055,7 +11264,7 @@ class C
             edits.VerifySemanticDiagnostics(active);
         }
 
-        [Fact(Skip = "https://github.com/dotnet/roslyn/issues/52971"), WorkItem(52971, "https://github.com/dotnet/roslyn/issues/52971")]
+        [Fact(Skip = "https://github.com/dotnet/roslyn/issues/52971"), WorkItem("https://github.com/dotnet/roslyn/issues/52971")]
         public void LineMapping_ExceptionRegions_LineChange_MultipleMappedFiles()
         {
             var src1 = @"

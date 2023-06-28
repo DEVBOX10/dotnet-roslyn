@@ -12,11 +12,8 @@ namespace Roslyn.VisualStudio.DiagnosticsWindow.OptionsPages
 {
     internal sealed class ForceLowMemoryMode
     {
-        private const string FeatureName = "ForceLowMemoryMode";
-
-        public static readonly Option2<bool> Enabled = new(FeatureName, "Enabled", defaultValue: false);
-
-        public static readonly Option2<int> SizeInMegabytes = new(FeatureName, "SizeInMegabytes", defaultValue: 500);
+        public static readonly Option2<bool> Enabled = new("ForceLowMemoryMode_Enabled", defaultValue: false);
+        public static readonly Option2<int> SizeInMegabytes = new("ForceLowMemoryMode_Enabled", defaultValue: 500);
 
         private readonly IGlobalOptionService _globalOptions;
         private MemoryHogger? _hogger;
@@ -25,14 +22,14 @@ namespace Roslyn.VisualStudio.DiagnosticsWindow.OptionsPages
         {
             _globalOptions = globalOptions;
 
-            globalOptions.OptionChanged += Options_OptionChanged;
+            globalOptions.AddOptionChangedHandler(this, Options_OptionChanged);
 
             RefreshFromSettings();
         }
 
         private void Options_OptionChanged(object sender, OptionChangedEventArgs e)
         {
-            if (e.Option.Feature == FeatureName)
+            if (e.Option == Enabled || e.Option == SizeInMegabytes)
             {
                 RefreshFromSettings();
             }

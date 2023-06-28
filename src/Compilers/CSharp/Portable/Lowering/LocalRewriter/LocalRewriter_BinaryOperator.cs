@@ -574,6 +574,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     whenNotNull: result,
                     whenNullOpt: whenNullOpt,
                     id: conditionalLeft.Id,
+                    forceCopyOfNullableValueType: conditionalLeft.ForceCopyOfNullableValueType,
                     type: result.Type!
                 );
             }
@@ -1557,9 +1558,8 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         private BoundExpression MakeNewNullableBoolean(SyntaxNode syntax, bool? value)
         {
-            NamedTypeSymbol nullableType = _compilation.GetSpecialType(SpecialType.System_Nullable_T);
             TypeSymbol boolType = _compilation.GetSpecialType(SpecialType.System_Boolean);
-            NamedTypeSymbol nullableBoolType = nullableType.Construct(boolType);
+            NamedTypeSymbol nullableBoolType = _compilation.GetOrCreateNullableType(boolType);
             if (value == null)
             {
                 return new BoundDefaultExpression(syntax, nullableBoolType);
@@ -1900,7 +1900,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                 var whenNull = kind == BinaryOperatorKind.NullableNullEqual ? MakeBooleanConstant(syntax, true) : null;
 
-                return conditionalAccess.Update(conditionalAccess.Receiver, conditionalAccess.HasValueMethodOpt, whenNotNull, whenNull, conditionalAccess.Id, whenNotNull.Type!);
+                return conditionalAccess.Update(conditionalAccess.Receiver, conditionalAccess.HasValueMethodOpt, whenNotNull, whenNull, conditionalAccess.Id, conditionalAccess.ForceCopyOfNullableValueType, whenNotNull.Type!);
             }
 
             BoundExpression call = MakeNullableHasValue(syntax, nullable);

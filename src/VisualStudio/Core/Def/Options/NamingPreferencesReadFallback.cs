@@ -8,10 +8,11 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Diagnostics.Analyzers.NamingStyles;
 using Roslyn.Utilities;
+using Microsoft.CodeAnalysis.CodeStyle;
 
 namespace Microsoft.VisualStudio.LanguageServices.Options;
 
-[ExportVisualStudioStorageReadFallback("SimplificationOptions_NamingPreferences"), Shared]
+[ExportVisualStudioStorageReadFallback(NamingStyleOptions.NamingPreferencesOptionName), Shared]
 internal sealed class NamingPreferencesReadFallback : IVisualStudioStorageReadFallback
 {
     [ImportingConstructor]
@@ -23,6 +24,6 @@ internal sealed class NamingPreferencesReadFallback : IVisualStudioStorageReadFa
     public Optional<object?> TryRead(string? language, TryReadValueDelegate readValue)
     {
         Contract.ThrowIfNull(language);
-        return readValue($"TextEditor.{language}.Specific.NamingPreferences", typeof(NamingStylePreferences));
+        return readValue($"TextEditor.{language}.Specific.NamingPreferences", typeof(NamingStylePreferences), NamingStyleOptions.NamingPreferences.DefaultValue);
     }
 }

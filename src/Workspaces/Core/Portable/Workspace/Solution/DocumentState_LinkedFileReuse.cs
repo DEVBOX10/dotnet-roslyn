@@ -19,13 +19,12 @@ namespace Microsoft.CodeAnalysis
         /// name="siblingTextSource"/> if possible, or which will incrementally parse the current tree to bring it up to
         /// date with <paramref name="siblingTextSource"/> otherwise.
         /// </summary>
-        public DocumentState UpdateTextAndTreeContents(ITextAndVersionSource siblingTextSource, ValueSource<TreeAndVersion>? siblingTreeSource)
+        public DocumentState UpdateTextAndTreeContents(ITextAndVersionSource siblingTextSource, AsyncLazy<TreeAndVersion>? siblingTreeSource)
         {
             if (!SupportsSyntaxTree)
             {
                 return new DocumentState(
                     LanguageServices,
-                    solutionServices,
                     Services,
                     Attributes,
                     _options,
@@ -57,8 +56,7 @@ namespace Microsoft.CodeAnalysis
                 filePath, languageServices, loadTextOptions, parseOptions, treeSource, siblingTextSource, siblingTreeSource);
 
             return new DocumentState(
-                LanguageServices,
-                solutionServices,
+                languageServices,
                 Services,
                 Attributes,
                 _options,
@@ -68,22 +66,21 @@ namespace Microsoft.CodeAnalysis
 
             static AsyncLazy<TreeAndVersion> GetReuseTreeSource(
                 string filePath,
-                HostLanguageServices languageServices,
+                LanguageServices languageServices,
                 LoadTextOptions loadTextOptions,
                 ParseOptions parseOptions,
-                ValueSource<TreeAndVersion> treeSource,
+                AsyncLazy<TreeAndVersion> treeSource,
                 ITextAndVersionSource siblingTextSource,
-                ValueSource<TreeAndVersion> siblingTreeSource)
+                AsyncLazy<TreeAndVersion> siblingTreeSource)
             {
                 return new AsyncLazy<TreeAndVersion>(
                     cancellationToken => TryReuseSiblingTreeAsync(filePath, languageServices, loadTextOptions, parseOptions, treeSource, siblingTextSource, siblingTreeSource, cancellationToken),
-                    cancellationToken => TryReuseSiblingTree(filePath, languageServices, loadTextOptions, parseOptions, treeSource, siblingTextSource, siblingTreeSource, cancellationToken),
-                    cacheResult: true);
+                    cancellationToken => TryReuseSiblingTree(filePath, languageServices, loadTextOptions, parseOptions, treeSource, siblingTextSource, siblingTreeSource, cancellationToken));
             }
 
             static bool TryReuseSiblingRoot(
                 string filePath,
-                HostLanguageServices languageServices,
+                LanguageServices languageServices,
                 LoadTextOptions loadTextOptions,
                 ParseOptions parseOptions,
                 SyntaxNode siblingRoot,
@@ -176,12 +173,12 @@ namespace Microsoft.CodeAnalysis
 
             static async Task<TreeAndVersion> TryReuseSiblingTreeAsync(
                 string filePath,
-                HostLanguageServices languageServices,
+                LanguageServices languageServices,
                 LoadTextOptions loadTextOptions,
                 ParseOptions parseOptions,
-                ValueSource<TreeAndVersion> treeSource,
+                AsyncLazy<TreeAndVersion> treeSource,
                 ITextAndVersionSource siblingTextSource,
-                ValueSource<TreeAndVersion> siblingTreeSource,
+                AsyncLazy<TreeAndVersion> siblingTreeSource,
                 CancellationToken cancellationToken)
             {
                 var siblingTreeAndVersion = await siblingTreeSource.GetValueAsync(cancellationToken).ConfigureAwait(false);
@@ -198,12 +195,12 @@ namespace Microsoft.CodeAnalysis
 
             static TreeAndVersion TryReuseSiblingTree(
                 string filePath,
-                HostLanguageServices languageServices,
+                LanguageServices languageServices,
                 LoadTextOptions loadTextOptions,
                 ParseOptions parseOptions,
-                ValueSource<TreeAndVersion> treeSource,
+                AsyncLazy<TreeAndVersion> treeSource,
                 ITextAndVersionSource siblingTextSource,
-                ValueSource<TreeAndVersion> siblingTreeSource,
+                AsyncLazy<TreeAndVersion> siblingTreeSource,
                 CancellationToken cancellationToken)
             {
                 var siblingTreeAndVersion = siblingTreeSource.GetValue(cancellationToken);

@@ -7,9 +7,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Shared.Collections;
 using Microsoft.CodeAnalysis.Shared.Utilities;
 using Roslyn.Utilities;
@@ -17,33 +17,24 @@ using Roslyn.Utilities;
 namespace Microsoft.CodeAnalysis.Options
 {
     [Export(typeof(IGlobalOptionService)), Shared]
-    internal sealed class GlobalOptionService : IGlobalOptionService
+    [method: ImportingConstructor]
+    [method: Obsolete(MefConstruction.ImportingConstructorMessage, error: true)]
+    internal sealed class GlobalOptionService(
+        [Import(AllowDefault = true)] IWorkspaceThreadingService? workspaceThreadingService,
+        [ImportMany] IEnumerable<Lazy<IOptionPersisterProvider>> optionPersisters) : IGlobalOptionService
     {
-        private readonly IWorkspaceThreadingService? _workspaceThreadingService;
-        private readonly ImmutableArray<Lazy<IOptionPersisterProvider>> _optionPersisterProviders;
+        private readonly ImmutableArray<Lazy<IOptionPersisterProvider>> _optionPersisterProviders = optionPersisters.ToImmutableArray();
 
         private readonly object _gate = new();
 
         #region Guarded by _gate
 
         private ImmutableArray<IOptionPersister> _lazyOptionPersisters;
-        private ImmutableDictionary<OptionKey2, object?> _currentValues;
+        private ImmutableDictionary<OptionKey2, object?> _currentValues = ImmutableDictionary.Create<OptionKey2, object?>();
 
         #endregion
 
-        public event EventHandler<OptionChangedEventArgs>? OptionChanged;
-
-        [ImportingConstructor]
-        [SuppressMessage("RoslynDiagnosticsReliability", "RS0033:Importing constructor should be [Obsolete]", Justification = "Used in test code: https://github.com/dotnet/roslyn/issues/42814")]
-        public GlobalOptionService(
-            [Import(AllowDefault = true)] IWorkspaceThreadingService? workspaceThreadingService,
-            [ImportMany] IEnumerable<Lazy<IOptionPersisterProvider>> optionPersisters)
-        {
-            _workspaceThreadingService = workspaceThreadingService;
-            _optionPersisterProviders = optionPersisters.ToImmutableArray();
-
-            _currentValues = ImmutableDictionary.Create<OptionKey2, object?>();
-        }
+        private readonly WeakEvent<OptionChangedEventArgs> _optionChanged = new();
 
         private ImmutableArray<IOptionPersister> GetOptionPersisters()
         {
@@ -55,7 +46,7 @@ namespace Microsoft.CodeAnalysis.Options
 
                 ImmutableInterlocked.InterlockedInitialize(
                     ref _lazyOptionPersisters,
-                    GetOptionPersistersSlow(_workspaceThreadingService, _optionPersisterProviders, CancellationToken.None));
+                    GetOptionPersistersSlow(workspaceThreadingService, _optionPersisterProviders, CancellationToken.None));
             }
 
             return _lazyOptionPersisters;
@@ -101,6 +92,12 @@ namespace Microsoft.CodeAnalysis.Options
             return optionKey.Option.DefaultValue;
         }
 
+        bool IOptionsReader.TryGetOption<T>(OptionKey2 optionKey, out T value)
+        {
+            value = GetOption<T>(optionKey);
+            return true;
+        }
+
         public T GetOption<T>(Option2<T> option)
             => GetOption<T>(new OptionKey2(option));
 
@@ -137,6 +134,9 @@ namespace Microsoft.CodeAnalysis.Options
 
         private object? GetOption_NoLock(OptionKey2 optionKey, ImmutableArray<IOptionPersister> persisters)
         {
+            // The option must be internally defined and it can't be a legacy option whose value is mapped to another option:
+            Debug.Assert(optionKey.Option is IOption2 { Definition.StorageMapping: null });
+
             if (_currentValues.TryGetValue(optionKey, out var value))
             {
                 return value;
@@ -227,17 +227,45 @@ namespace Microsoft.CodeAnalysis.Options
             return true;
         }
 
+        public void AddOptionChangedHandler(object target, EventHandler<OptionChangedEventArgs> handler)
+        {
+            _optionChanged.AddHandler(target, handler);
+        }
+
+        public void RemoveOptionChangedHandler(object target, EventHandler<OptionChangedEventArgs> handler)
+        {
+            _optionChanged.RemoveHandler(target, handler);
+        }
+
         private void RaiseOptionChangedEvent(List<OptionChangedEventArgs> changedOptions)
         {
             Debug.Assert(changedOptions.Count > 0);
 
-            // Raise option changed events.
-            var optionChanged = OptionChanged;
-            if (optionChanged != null)
+            foreach (var changedOption in changedOptions)
             {
-                foreach (var changedOption in changedOptions)
+                _optionChanged.RaiseEvent(this, changedOption);
+            }
+        }
+
+        internal TestAccessor GetTestAccessor()
+        {
+            return new TestAccessor(this);
+        }
+
+        internal readonly struct TestAccessor
+        {
+            private readonly GlobalOptionService _instance;
+
+            internal TestAccessor(GlobalOptionService instance)
+            {
+                _instance = instance;
+            }
+
+            public void ClearCachedValues()
+            {
+                lock (_instance._gate)
                 {
-                    optionChanged(this, changedOption);
+                    _instance._currentValues = ImmutableDictionary.Create<OptionKey2, object?>();
                 }
             }
         }

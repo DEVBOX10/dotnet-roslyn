@@ -17,6 +17,7 @@ using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Extensions;
 using Microsoft.CodeAnalysis.Internal.Log;
 using Microsoft.CodeAnalysis.Shared.Utilities;
+using Microsoft.CodeAnalysis.Telemetry;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.Core.Imaging;
 using Microsoft.VisualStudio.Imaging.Interop;
@@ -77,19 +78,20 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
             IProgressTracker progressTracker, CancellationToken cancellationToken)
         {
             return Task.Run(
-                () => CodeAction.GetOperationsAsync(progressTracker, cancellationToken), cancellationToken);
+                () => CodeAction.GetOperationsAsync(this.OriginalSolution, progressTracker, cancellationToken), cancellationToken);
         }
 
-        protected static Task<IEnumerable<CodeActionOperation>> GetOperationsAsync(CodeActionWithOptions actionWithOptions, object options, CancellationToken cancellationToken)
+        protected Task<IEnumerable<CodeActionOperation>> GetOperationsAsync(
+            CodeActionWithOptions actionWithOptions, object options, CancellationToken cancellationToken)
         {
             return Task.Run(
-                () => actionWithOptions.GetOperationsAsync(options, cancellationToken), cancellationToken);
+                () => actionWithOptions.GetOperationsAsync(this.OriginalSolution, options, cancellationToken), cancellationToken);
         }
 
         protected Task<ImmutableArray<CodeActionOperation>> GetPreviewOperationsAsync(CancellationToken cancellationToken)
         {
             return Task.Run(
-                () => CodeAction.GetPreviewOperationsAsync(cancellationToken), cancellationToken);
+                () => CodeAction.GetPreviewOperationsAsync(this.OriginalSolution, cancellationToken), cancellationToken);
         }
 
         public void Invoke(CancellationToken cancellationToken)
@@ -111,6 +113,8 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Suggestions
         {
             try
             {
+                using var _ = TelemetryLogging.LogBlockTimeAggregated(FunctionId.SuggestedAction_Application_Summary, $"Total");
+
                 using var token = SourceProvider.OperationListener.BeginAsyncOperation($"{nameof(SuggestedAction)}.{nameof(Invoke)}");
                 using var context = SourceProvider.UIThreadOperationExecutor.BeginExecute(
                     EditorFeaturesResources.Execute_Suggested_Action, CodeAction.Title, allowCancellation: true, showProgress: true);
