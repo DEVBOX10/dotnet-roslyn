@@ -16,7 +16,7 @@ internal static class SolutionCrawlerOptionsStorage
     /// Option to turn configure background analysis scope for the current user.
     /// </summary>
     public static readonly PerLanguageOption2<BackgroundAnalysisScope> BackgroundAnalysisScopeOption = new(
-        "dotnet_solution_crawler_background_analysis_scope", defaultValue: BackgroundAnalysisScope.Default, group: s_backgroundAnalysisOptionGroup, serializer: EditorConfigValueSerializer.CreateSerializerForEnum<BackgroundAnalysisScope>());
+        "dotnet_analyzer_diagnostics_scope", defaultValue: BackgroundAnalysisScope.Default, group: s_backgroundAnalysisOptionGroup, serializer: EditorConfigValueSerializer.CreateSerializerForEnum<BackgroundAnalysisScope>());
 
     /// <summary>
     /// Option to turn configure background analysis scope for the current solution.
@@ -73,12 +73,12 @@ internal static class SolutionCrawlerOptionsStorage
     {
         if (LowMemoryForcedMinimalBackgroundAnalysis)
         {
-            return CompilerDiagnosticsScope.VisibleFilesAndFilesWithPreviouslyReportedDiagnostics;
+            return CompilerDiagnosticsScope.VisibleFilesAndOpenFilesWithPreviouslyReportedDiagnostics;
         }
 
         return globalOptions.GetOption(SolutionBackgroundAnalysisScopeOption) switch
         {
-            BackgroundAnalysisScope.ActiveFile => CompilerDiagnosticsScope.VisibleFilesAndFilesWithPreviouslyReportedDiagnostics,
+            BackgroundAnalysisScope.VisibleFilesAndOpenFilesWithPreviouslyReportedDiagnostics => CompilerDiagnosticsScope.VisibleFilesAndOpenFilesWithPreviouslyReportedDiagnostics,
             BackgroundAnalysisScope.OpenFiles => CompilerDiagnosticsScope.OpenFiles,
             BackgroundAnalysisScope.FullSolution => CompilerDiagnosticsScope.FullSolution,
             BackgroundAnalysisScope.None => CompilerDiagnosticsScope.None,

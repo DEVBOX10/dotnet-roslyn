@@ -1309,6 +1309,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         #endregion
 
+#nullable enable
         /// <summary>
         /// True if this symbol has been marked with the <see cref="ObsoleteAttribute"/> attribute. 
         /// This property returns <see cref="ThreeState.Unknown"/> if the <see cref="ObsoleteAttribute"/> attribute hasn't been cracked yet.
@@ -1320,12 +1321,33 @@ namespace Microsoft.CodeAnalysis.CSharp
                 switch (ObsoleteKind)
                 {
                     case ObsoleteAttributeKind.None:
+                    case ObsoleteAttributeKind.WindowsExperimental:
                     case ObsoleteAttributeKind.Experimental:
                         return ThreeState.False;
                     case ObsoleteAttributeKind.Uninitialized:
                         return ThreeState.Unknown;
                     default:
                         return ThreeState.True;
+                }
+            }
+        }
+
+        /// <summary>
+        /// True if this symbol has been marked with the System.Diagnostics.CodeAnalysis.ExperimentalAttribute attribute. 
+        /// This property returns <see cref="ThreeState.Unknown"/> if the attribute hasn't been cracked yet.
+        /// </summary>
+        internal ThreeState ExperimentalState
+        {
+            get
+            {
+                switch (ObsoleteKind)
+                {
+                    case ObsoleteAttributeKind.Experimental:
+                        return ThreeState.True;
+                    case ObsoleteAttributeKind.Uninitialized:
+                        return ThreeState.Unknown;
+                    default:
+                        return ThreeState.False;
                 }
             }
         }
@@ -1340,32 +1362,11 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
 
         /// <summary>
-        /// Returns data decoded from <see cref="ObsoleteAttribute"/> attribute or null if there is no <see cref="ObsoleteAttribute"/> attribute.
+        /// Returns data decoded from <see cref="ObsoleteAttribute"/>/Experimental attribute or null if there is no <see cref="ObsoleteAttribute"/>/Experimental attribute.
         /// This property returns <see cref="Microsoft.CodeAnalysis.ObsoleteAttributeData.Uninitialized"/> if attribute arguments haven't been decoded yet.
         /// </summary>
-        internal abstract ObsoleteAttributeData ObsoleteAttributeData { get; }
-
-        /// <summary>
-        /// Returns true and a <see cref="string"/> from the first <see cref="GuidAttribute"/> on the symbol, 
-        /// the string might be null or an invalid guid representation. False, 
-        /// if there is no <see cref="GuidAttribute"/> with string argument.
-        /// </summary>
-        internal bool GetGuidStringDefaultImplementation(out string guidString)
-        {
-            foreach (var attrData in this.GetAttributes())
-            {
-                if (attrData.IsTargetAttribute(this, AttributeDescription.GuidAttribute))
-                {
-                    if (attrData.TryGetGuidAttributeValue(out guidString))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            guidString = null;
-            return false;
-        }
+        internal abstract ObsoleteAttributeData? ObsoleteAttributeData { get; }
+#nullable disable
 
         public string ToDisplayString(SymbolDisplayFormat format = null)
         {
@@ -1432,6 +1433,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             RequiredMemberAttribute = 1 << 11,
             ScopedRefAttribute = 1 << 12,
             RefSafetyRulesAttribute = 1 << 13,
+            RequiresLocationAttribute = 1 << 14,
         }
 
         internal bool ReportExplicitUseOfReservedAttributes(in DecodeWellKnownAttributeArguments<AttributeSyntax, CSharpAttributeData, AttributeLocation> arguments, ReservedAttributes reserved)
@@ -1439,14 +1441,20 @@ namespace Microsoft.CodeAnalysis.CSharp
             var attribute = arguments.Attribute;
             var diagnostics = (BindingDiagnosticBag)arguments.Diagnostics;
 
+            Debug.Assert(attribute is SourceAttributeData);
+
             if ((reserved & ReservedAttributes.DynamicAttribute) != 0 &&
-                attribute.IsTargetAttribute(this, AttributeDescription.DynamicAttribute))
+                attribute.IsTargetAttribute(AttributeDescription.DynamicAttribute))
             {
                 // DynamicAttribute should not be set explicitly.
                 diagnostics.Add(ErrorCode.ERR_ExplicitDynamicAttr, arguments.AttributeSyntaxOpt.Location);
             }
             else if ((reserved & ReservedAttributes.IsReadOnlyAttribute) != 0 &&
                 reportExplicitUseOfReservedAttribute(attribute, arguments, AttributeDescription.IsReadOnlyAttribute))
+            {
+            }
+            else if ((reserved & ReservedAttributes.RequiresLocationAttribute) != 0 &&
+                reportExplicitUseOfReservedAttribute(attribute, arguments, AttributeDescription.RequiresLocationAttribute))
             {
             }
             else if ((reserved & ReservedAttributes.IsUnmanagedAttribute) != 0 &&
@@ -1458,12 +1466,12 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
             }
             else if ((reserved & ReservedAttributes.TupleElementNamesAttribute) != 0 &&
-                attribute.IsTargetAttribute(this, AttributeDescription.TupleElementNamesAttribute))
+                attribute.IsTargetAttribute(AttributeDescription.TupleElementNamesAttribute))
             {
                 diagnostics.Add(ErrorCode.ERR_ExplicitTupleElementNamesAttribute, arguments.AttributeSyntaxOpt.Location);
             }
             else if ((reserved & ReservedAttributes.NullableAttribute) != 0 &&
-                attribute.IsTargetAttribute(this, AttributeDescription.NullableAttribute))
+                attribute.IsTargetAttribute(AttributeDescription.NullableAttribute))
             {
                 // NullableAttribute should not be set explicitly.
                 diagnostics.Add(ErrorCode.ERR_ExplicitNullableAttribute, arguments.AttributeSyntaxOpt.Location);
@@ -1481,19 +1489,19 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
             }
             else if ((reserved & ReservedAttributes.CaseSensitiveExtensionAttribute) != 0 &&
-                attribute.IsTargetAttribute(this, AttributeDescription.CaseSensitiveExtensionAttribute))
+                attribute.IsTargetAttribute(AttributeDescription.CaseSensitiveExtensionAttribute))
             {
                 // ExtensionAttribute should not be set explicitly.
                 diagnostics.Add(ErrorCode.ERR_ExplicitExtension, arguments.AttributeSyntaxOpt.Location);
             }
             else if ((reserved & ReservedAttributes.RequiredMemberAttribute) != 0 &&
-                attribute.IsTargetAttribute(this, AttributeDescription.RequiredMemberAttribute))
+                attribute.IsTargetAttribute(AttributeDescription.RequiredMemberAttribute))
             {
                 // Do not use 'System.Runtime.CompilerServices.RequiredMemberAttribute'. Use the 'required' keyword on required fields and properties instead.
                 diagnostics.Add(ErrorCode.ERR_ExplicitRequiredMember, arguments.AttributeSyntaxOpt.Location);
             }
             else if ((reserved & ReservedAttributes.ScopedRefAttribute) != 0 &&
-                attribute.IsTargetAttribute(this, AttributeDescription.ScopedRefAttribute))
+                attribute.IsTargetAttribute(AttributeDescription.ScopedRefAttribute))
             {
                 // Do not use 'System.Runtime.CompilerServices.ScopedRefAttribute'. Use the 'scoped' keyword instead.
                 diagnostics.Add(ErrorCode.ERR_ExplicitScopedRef, arguments.AttributeSyntaxOpt.Location);
@@ -1510,7 +1518,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             bool reportExplicitUseOfReservedAttribute(CSharpAttributeData attribute, in DecodeWellKnownAttributeArguments<AttributeSyntax, CSharpAttributeData, AttributeLocation> arguments, in AttributeDescription attributeDescription)
             {
-                if (attribute.IsTargetAttribute(this, attributeDescription))
+                if (attribute.IsTargetAttribute(attributeDescription))
                 {
                     // Do not use '{FullName}'. This is reserved for compiler usage.
                     diagnostics.Add(ErrorCode.ERR_ExplicitReservedAttr, arguments.AttributeSyntaxOpt.Location, attributeDescription.FullName);

@@ -42,6 +42,11 @@
         <target state="translated">'System.Runtime.CompilerServices.RequiredMemberAttribute' está reservado solo para uso del compilador.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ERR_InvalidExperimentalDiagID">
+        <source>The diagnosticId argument to the 'Experimental' attribute must be a valid identifier</source>
+        <target state="new">The diagnosticId argument to the 'Experimental' attribute must be a valid identifier</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ERR_MultipleAnalyzerConfigsInSameDir">
         <source>Multiple analyzer config files cannot be in the same directory ('{0}').</source>
         <target state="translated">No es posible que un mismo directorio ("{0}") contenga varios archivos de configuración del analizador.</target>
@@ -94,7 +99,7 @@
       </trans-unit>
       <trans-unit id="ERR_SymbolDefinedInAssembly">
         <source>'{0}' is defined in assembly '{1}'.</source>
-        <target state="new">'{0}' is defined in assembly '{1}'.</target>
+        <target state="translated">'{0}' se define en el ensamblado '{1}'.</target>
         <note />
       </trans-unit>
       <trans-unit id="ERR_UnimplementedSharedMember">
@@ -307,7 +312,7 @@
 -vbruntime:&lt;file&gt;                 Compile with the alternate Visual Basic
                                   runtime in &lt;file&gt;.
 </source>
-        <target state="needs-review-translation">                  Opciones del compilador de Visual Basic
+        <target state="translated">                  Opciones del compilador de Visual Basic
 
                                   - ARCHIVO DE SALIDA -
 -out:&lt;file&gt;                       Especifica el nombre del archivo de salida.
@@ -461,6 +466,9 @@
                                   AnyCPU32BitPreferred o anycpu (valor predeterminado).
 -preferreduilang                  Especifique el nombre del idioma de salida preferido.
 -nosdkpath                        Deshabilita la búsqueda de rutas de acceso SDK predeterminadas para la biblioteca estándar.
+-reportivts[+|-]                  Información de salida sobre todos los IVT concedidos a este
+                                  ensamblado por todas las dependencias y anotar los errores de accesibilidad de ensamblados
+                                  externos con el ensamblado del que proceden.
 -sdkpath:&lt;path&gt;                   Ubicación del directorio de .NET Framework SDK
                                   (mscorlib.dll).
 -subsystemversion:&lt;version&gt;       Especificar versión del subsistema del PE de salida.
@@ -611,16 +619,14 @@
         <note />
       </trans-unit>
       <trans-unit id="WRN_GeneratorFailedDuringGeneration">
-        <source>Generator '{0}' failed to generate source. It will not contribute to the output and compilation errors may occur as a result. Exception was of type '{1}' with message '{2}'</source>
-        <target state="translated">Error del generador "{0}" al crear código fuente. No contribuirá a la salida y pueden producirse errores de compilación como resultado. Se produjo la excepción de tipo "{1}" con el mensaje "{2}"</target>
-        <note>{0} is the name of the generator that failed. {1} is the type of exception that was thrown {2} is the message in the exception</note>
-      </trans-unit>
-      <trans-unit id="WRN_GeneratorFailedDuringGeneration_Description">
-        <source>Generator threw the following exception:
-'{0}'.</source>
-        <target state="translated">El generador produjo la excepción siguiente:
-"{0}".</target>
-        <note>{0} is the string representation of the exception that was thrown.</note>
+        <source>Generator '{0}' failed to generate source. It will not contribute to the output and compilation errors may occur as a result. Exception was of type '{1}' with message '{2}'.
+{3}</source>
+        <target state="translated">El generador '{0}' no pudo generar el origen. No contribuye a la salida y pueden producirse errores de compilación como resultado. La excepción era de tipo '{1}' con el mensaje '{2}'.
+{3}</target>
+        <note>{0} is the name of the generator that failed.
+{1} is the type of exception that was thrown.
+{2} is the message in the exception.
+{3} is the string representation of the exception that was thrown.</note>
       </trans-unit>
       <trans-unit id="WRN_GeneratorFailedDuringGeneration_Title">
         <source>Generator failed to generate source.</source>
@@ -628,16 +634,14 @@
         <note />
       </trans-unit>
       <trans-unit id="WRN_GeneratorFailedDuringInitialization">
-        <source>Generator '{0}' failed to initialize. It will not contribute to the output and compilation errors may occur as a result. Exception was of type '{1}' with message '{2}'</source>
-        <target state="translated">Error de inicialización del generador "{0}". No contribuirá a la salida y pueden producirse errores de compilación como resultado. Se produjo la excepción de tipo "{1}" con el mensaje "{2}"</target>
-        <note>{0} is the name of the generator that failed. {1} is the type of exception that was thrown {2} is the message in the exception</note>
-      </trans-unit>
-      <trans-unit id="WRN_GeneratorFailedDuringInitialization_Description">
-        <source>Generator threw the following exception:
-'{0}'.</source>
-        <target state="translated">El generador produjo la excepción siguiente:
-"{0}".</target>
-        <note>{0} is the string representation of the exception that was thrown.</note>
+        <source>Generator '{0}' failed to initialize. It will not contribute to the output and compilation errors may occur as a result. Exception was of type '{1}' with message '{2}'.
+{3}</source>
+        <target state="translated">El generador '{0} ' no se pudo inicializar. No contribuye a la salida y pueden producirse errores de compilación como resultado. La excepción era de tipo '{1}' con el mensaje '{2}'.
+{3}</target>
+        <note>{0} is the name of the generator that failed.
+{1} is the type of exception that was thrown.
+{2} is the message in the exception.
+{3} is the string representation of the exception that was thrown.</note>
       </trans-unit>
       <trans-unit id="WRN_GeneratorFailedDuringInitialization_Title">
         <source>Generator failed to initialize.</source>

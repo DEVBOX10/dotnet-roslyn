@@ -64,7 +64,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         /// <summary>
         /// Returns the type arguments that have been substituted for the type parameters. 
-        /// If nothing has been substituted for a give type parameters,
+        /// If nothing has been substituted for a given type parameter,
         /// then the type parameter itself is consider the type argument.
         /// </summary>
         internal abstract ImmutableArray<TypeWithAnnotations> TypeArgumentsWithAnnotationsNoUseSiteDiagnostics { get; }
@@ -162,10 +162,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         /// the string might be null or an invalid guid representation. False, 
         /// if there is no GuidAttribute with string argument.
         /// </summary>
-        internal virtual bool GetGuidString(out string guidString)
-        {
-            return GetGuidStringDefaultImplementation(out guidString);
-        }
+        internal abstract bool GetGuidString(out string guidString);
 
 #nullable enable
         /// <summary>
@@ -364,7 +361,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                         var thisParam = method.Parameters.First();
 
                         if ((thisParam.RefKind == RefKind.Ref && !thisParam.Type.IsValueType) ||
-                            (thisParam.RefKind == RefKind.In && thisParam.Type.TypeKind != TypeKind.Struct))
+                            (thisParam.RefKind is RefKind.In or RefKind.RefReadOnlyParameter && thisParam.Type.TypeKind != TypeKind.Struct))
                         {
                             // For ref and ref-readonly extension methods, receivers need to be of the correct types to be considered in lookup
                             continue;
@@ -1155,6 +1152,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         /// </summary>
         internal abstract bool HasCodeAnalysisEmbeddedAttribute { get; }
 
+        internal abstract bool HasAsyncMethodBuilderAttribute(out TypeSymbol builderArgument);
+
         /// <summary>
         /// Gets a value indicating whether this type has System.Runtime.CompilerServices.InterpolatedStringHandlerAttribute or not.
         /// </summary>
@@ -1612,6 +1611,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 return null;
             }
         }
+
+#nullable enable
+        internal abstract bool HasCollectionBuilderAttribute(out TypeSymbol? builderType, out string? methodName);
+#nullable disable
 
         /// <summary>
         /// Requires less computation than <see cref="TypeSymbol.TypeKind"/> == <see cref="TypeKind.Interface"/>.

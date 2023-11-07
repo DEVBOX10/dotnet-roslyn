@@ -1031,5 +1031,15 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             return base.VisitFunctionPointerInvocation(node);
         }
+
+        public override BoundNode VisitCollectionExpression(BoundCollectionExpression node)
+        {
+            if (_inExpressionLambda)
+            {
+                Error(ErrorCode.ERR_ExpressionTreeContainsCollectionExpression, node);
+            }
+
+            return base.VisitCollectionExpression(node);
+        }
     }
 }

@@ -1964,9 +1964,41 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         public override BoundNode VisitObjectCreationExpression(BoundObjectCreationExpression node)
         {
-
             VisitArguments(node.Arguments, node.ArgumentRefKindsOpt, node.Constructor);
             VisitRvalue(node.InitializerExpressionOpt);
+            return null;
+        }
+
+        public override BoundNode VisitCollectionExpression(BoundCollectionExpression node)
+        {
+            VisitCollectionExpression(node.Elements);
+            return null;
+        }
+
+        public override BoundNode VisitUnconvertedCollectionExpression(BoundUnconvertedCollectionExpression node)
+        {
+            VisitCollectionExpression(node.Elements);
+            return null;
+        }
+
+        private void VisitCollectionExpression(ImmutableArray<BoundNode> elements)
+        {
+            foreach (var element in elements)
+            {
+                if (element is BoundExpression expression)
+                {
+                    VisitRvalue(expression);
+                }
+                else
+                {
+                    Visit(element);
+                }
+            }
+        }
+
+        public override BoundNode VisitCollectionExpressionSpreadElement(BoundCollectionExpressionSpreadElement node)
+        {
+            VisitRvalue(node.Expression);
             return null;
         }
 
@@ -2739,8 +2771,8 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             // foreach [await] ( var v in node.Expression ) { node.Body; node.ContinueLabel: } node.BreakLabel:
             VisitForEachExpression(node);
-            var breakState = this.State.Clone();
             LoopHead(node);
+            var breakState = this.State.Clone();
             VisitForEachIterationVariables(node);
             VisitStatement(node.Body);
             ResolveContinues(node.ContinueLabel);
@@ -3031,7 +3063,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 }
             }
 
-            VisitRvalue(node.Value);
+            Visit(node.Value);
             return null;
         }
 
@@ -3047,7 +3079,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         public override BoundNode VisitSequencePointExpression(BoundSequencePointExpression node)
         {
-            VisitRvalue(node.Expression);
+            Visit(node.Expression);
             return null;
         }
 

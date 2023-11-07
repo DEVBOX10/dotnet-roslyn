@@ -73,6 +73,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                                     RefKind.None,
                                     declarationModifiers,
                                     returnsVoid: !hasAwait && !hasReturnWithExpression,
+                                    returnsVoidIsSet: true,
                                     isExpressionBodied: false,
                                     isExtensionMethod: false,
                                     isNullableAnalysisEnabled: isNullableAnalysisEnabled,
@@ -217,7 +218,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             CSharpCompilation compilation = DeclaringCompilation;
 
             var syntaxNode = SyntaxNode;
-            Binder result = new BuckStopsHereBinder(compilation, FileIdentifier.Create(syntaxNode.SyntaxTree));
+            Binder result = new BuckStopsHereBinder(compilation, FileIdentifier.Create(syntaxNode.SyntaxTree, compilation.Options.SourceReferenceResolver));
             var globalNamespace = compilation.GlobalNamespace;
             var declaringSymbol = (SourceNamespaceSymbol)compilation.SourceModule.GlobalNamespace;
             result = WithExternAndUsingAliasesBinder.Create(declaringSymbol, syntaxNode, WithUsingNamespacesAndTypesBinder.Create(declaringSymbol, syntaxNode, result));

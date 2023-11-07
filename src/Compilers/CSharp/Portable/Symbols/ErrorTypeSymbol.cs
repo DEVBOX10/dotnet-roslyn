@@ -292,7 +292,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         /// <summary>
         /// Returns the type arguments that have been substituted for the type parameters. 
-        /// If nothing has been substituted for a give type parameters,
+        /// If nothing has been substituted for a given type parameter,
         /// then the type parameter itself is consider the type argument.
         /// </summary>
         internal override ImmutableArray<TypeWithAnnotations> TypeArgumentsWithAnnotationsNoUseSiteDiagnostics
@@ -432,6 +432,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
         internal override NamedTypeSymbol? BaseTypeNoUseSiteDiagnostics => null;
 
+        internal override bool GetGuidString(out string? guidString)
+        {
+            guidString = null;
+            return false;
+        }
+
         internal override bool HasCodeAnalysisEmbeddedAttribute => false;
 
         internal override bool IsInterpolatedStringHandlerType => false;
@@ -560,6 +566,19 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         internal sealed override bool HasInlineArrayAttribute(out int length)
         {
             length = 0;
+            return false;
+        }
+
+        internal sealed override bool HasCollectionBuilderAttribute(out TypeSymbol? builderType, out string? methodName)
+        {
+            builderType = null;
+            methodName = null;
+            return false;
+        }
+
+        internal sealed override bool HasAsyncMethodBuilderAttribute(out TypeSymbol? builderArgument)
+        {
+            builderArgument = null;
             return false;
         }
     }

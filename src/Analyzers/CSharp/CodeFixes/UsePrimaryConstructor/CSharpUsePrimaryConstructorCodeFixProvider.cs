@@ -181,8 +181,8 @@ internal partial class CSharpUsePrimaryConstructorCodeFixProvider : CodeFixProvi
                     currentTypeDeclaration, constructorDeclaration, constructor, properties, removedMembers);
 
                 return currentTypeDeclaration
-                    .WithLeadingTrivia(finalTrivia)
                     .WithAttributeLists(finalAttributeLists)
+                    .WithLeadingTrivia(finalTrivia)
                     .WithIdentifier(typeParameterList != null ? currentTypeDeclaration.Identifier : currentTypeDeclaration.Identifier.WithoutTrailingTrivia())
                     .WithTypeParameterList(typeParameterList?.WithoutTrailingTrivia())
                     .WithParameterList(parameterList
@@ -268,12 +268,12 @@ internal partial class CSharpUsePrimaryConstructorCodeFixProvider : CodeFixProvi
                     getElements(list),
                     (p, _) =>
                     {
-                        var parameterLeadingWhitespace = GetLeadingWhitespace(p);
-                        if (parameterLeadingWhitespace.EndsWith(indentation))
+                        var elementLeadingWhitespace = GetLeadingWhitespace(p);
+                        if (elementLeadingWhitespace.EndsWith(indentation))
                         {
                             var leadingTrivia = p.GetLeadingTrivia();
                             return p.WithLeadingTrivia(
-                                leadingTrivia.Take(leadingTrivia.Count - 1).Concat(Whitespace(parameterLeadingWhitespace[..^indentation.Length])));
+                                leadingTrivia.Take(leadingTrivia.Count - 1).Concat(Whitespace(elementLeadingWhitespace[..^indentation.Length])));
                         }
 
                         return p;

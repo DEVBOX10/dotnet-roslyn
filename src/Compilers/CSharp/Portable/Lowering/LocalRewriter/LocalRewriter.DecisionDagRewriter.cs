@@ -758,6 +758,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                         var stringPatternInput = isStringInput ? StringPatternInput.String : (isSpanInput ? StringPatternInput.SpanChar : StringPatternInput.ReadOnlySpanChar);
 
                         if (!this._localRewriter._compilation.FeatureDisableLengthBasedSwitch &&
+                            this._factory.Compilation.Options.OptimizationLevel == OptimizationLevel.Release &&
                             LengthBasedStringSwitchData.Create(node.Cases) is var lengthBasedDispatch &&
                             lengthBasedDispatch.ShouldGenerateLengthBasedSwitch(node.Cases.Length) &&
                             hasLengthBasedDispatchRequiredMembers(stringPatternInput))
@@ -903,7 +904,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 // table based jump table or a non hash jump table, i.e. linear string comparisons
                 // with each case label. We use the Dev10 Heuristic to determine this
                 // (see SwitchStringJumpTableEmitter.ShouldGenerateHashTableSwitch() for details).
-                if (!CodeAnalysis.CodeGen.SwitchStringJumpTableEmitter.ShouldGenerateHashTableSwitch(module, labelsCount))
+                if (!CodeAnalysis.CodeGen.SwitchStringJumpTableEmitter.ShouldGenerateHashTableSwitch(labelsCount))
                 {
                     return;
                 }

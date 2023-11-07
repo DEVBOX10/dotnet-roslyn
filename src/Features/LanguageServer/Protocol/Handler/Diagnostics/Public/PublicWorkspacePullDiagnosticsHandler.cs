@@ -62,16 +62,14 @@ internal sealed class PublicWorkspacePullDiagnosticsHandler : AbstractPullDiagno
     protected override string? GetDiagnosticCategory(WorkspaceDiagnosticParams diagnosticsParams)
         => null;
 
-    protected override DiagnosticTag[] ConvertTags(DiagnosticData diagnosticData)
-    {
-        return ConvertTags(diagnosticData, potentialDuplicate: false);
-    }
+    protected override DiagnosticTag[] ConvertTags(DiagnosticData diagnosticData, bool isLiveSource)
+        => ConvertTags(diagnosticData, isLiveSource, potentialDuplicate: false);
 
     protected override WorkspaceDiagnosticPartialReport CreateReport(TextDocumentIdentifier identifier, VisualStudio.LanguageServer.Protocol.Diagnostic[] diagnostics, string resultId)
-        => new WorkspaceDiagnosticPartialReport(new WorkspaceDiagnosticReport
+        => new(new WorkspaceDiagnosticReport
         {
-            Items = new SumType<WorkspaceFullDocumentDiagnosticReport, WorkspaceUnchangedDocumentDiagnosticReport>[]
-            {
+            Items =
+            [
                 new WorkspaceFullDocumentDiagnosticReport
                 {
                     Uri = identifier.Uri,
@@ -80,14 +78,14 @@ internal sealed class PublicWorkspacePullDiagnosticsHandler : AbstractPullDiagno
                     Version = null,
                     ResultId = resultId
                 }
-            }
+            ]
         });
 
     protected override WorkspaceDiagnosticPartialReport CreateRemovedReport(TextDocumentIdentifier identifier)
-        => new WorkspaceDiagnosticPartialReport(new WorkspaceDiagnosticReport
+        => new(new WorkspaceDiagnosticReport
         {
-            Items = new SumType<WorkspaceFullDocumentDiagnosticReport, WorkspaceUnchangedDocumentDiagnosticReport>[]
-            {
+            Items =
+            [
                 new WorkspaceFullDocumentDiagnosticReport
                 {
                     Uri = identifier.Uri,
@@ -96,14 +94,14 @@ internal sealed class PublicWorkspacePullDiagnosticsHandler : AbstractPullDiagno
                     Version = null,
                     ResultId = null,
                 }
-            }
+            ]
         });
 
     protected override WorkspaceDiagnosticPartialReport CreateUnchangedReport(TextDocumentIdentifier identifier, string resultId)
-        => new WorkspaceDiagnosticPartialReport(new WorkspaceDiagnosticReport
+        => new(new WorkspaceDiagnosticReport
         {
-            Items = new SumType<WorkspaceFullDocumentDiagnosticReport, WorkspaceUnchangedDocumentDiagnosticReport>[]
-            {
+            Items =
+            [
                 new WorkspaceUnchangedDocumentDiagnosticReport
                 {
                     Uri = identifier.Uri,
@@ -111,7 +109,7 @@ internal sealed class PublicWorkspacePullDiagnosticsHandler : AbstractPullDiagno
                     Version = null,
                     ResultId = resultId,
                 }
-            }
+            ]
         });
 
     protected override WorkspaceDiagnosticReport? CreateReturn(BufferedProgress<WorkspaceDiagnosticPartialReport> progress)

@@ -136,7 +136,15 @@ namespace Microsoft.CodeAnalysis.Completion
             OptionSet passThroughOptions,
             ImmutableHashSet<string>? roles = null)
         {
+            // The trigger kind guarantees that user wants a completion.
+            if (trigger.Kind is CompletionTriggerKind.Invoke or CompletionTriggerKind.InvokeAndCommitIfUnique)
+                return true;
+
             if (!options.TriggerOnTyping)
+                return false;
+
+            // Enter does not trigger completion.
+            if (trigger.Kind == CompletionTriggerKind.Insertion && trigger.Character == '\n')
             {
                 return false;
             }
@@ -351,12 +359,9 @@ namespace Microsoft.CodeAnalysis.Completion
         internal TestAccessor GetTestAccessor()
             => new(this);
 
-        internal readonly struct TestAccessor
+        internal readonly struct TestAccessor(CompletionService completionServiceWithProviders)
         {
-            private readonly CompletionService _completionServiceWithProviders;
-
-            public TestAccessor(CompletionService completionServiceWithProviders)
-                => _completionServiceWithProviders = completionServiceWithProviders;
+            private readonly CompletionService _completionServiceWithProviders = completionServiceWithProviders;
 
             public ImmutableArray<CompletionProvider> GetImportedAndBuiltInProviders(ImmutableHashSet<string> roles)
                 => _completionServiceWithProviders._providerManager.GetTestAccessor().GetImportedAndBuiltInProviders(roles);
